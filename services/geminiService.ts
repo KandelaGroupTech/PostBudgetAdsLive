@@ -13,7 +13,8 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       Return the data in JSON format. 
       IMPORTANT: For Governor, Senators, and Representative, include their party affiliation in parenthesis, e.g., "John Doe (D)" or "Jane Smith (R)".
       Include: Governor, Senators (names only with party), Representative (generic or specific if known with party), 
-      approximate population, median household income, and a 1 sentence description of the county's vibe.`,
+      approximate population, median household income, a 1 sentence description of the county's vibe,
+      and the top 3 cities in the county with their population in parenthesis (e.g. "City Name (10,000)").`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -27,8 +28,9 @@ export const getCountyDemographics = async (county: string, state: string): Prom
             population: { type: Type.STRING },
             medianIncome: { type: Type.STRING },
             description: { type: Type.STRING },
+            topCities: { type: Type.ARRAY, items: { type: Type.STRING } },
           },
-          required: ["countyName", "stateName", "governor", "senators", "population", "medianIncome", "description"]
+          required: ["countyName", "stateName", "governor", "senators", "population", "medianIncome", "description", "topCities"]
         }
       }
     });
@@ -48,7 +50,8 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       congressRepresentative: "Unknown",
       population: "Unknown",
       medianIncome: "Unknown",
-      description: "Unable to load specific county data at this time."
+      description: "Unable to load specific county data at this time.",
+      topCities: ["Unknown"]
     };
   }
 };
@@ -83,9 +86,9 @@ export const getCommunityAnnouncements = async (county: string, state: string): 
         }
       }
     });
-    
+
     if (response.text) {
-        return JSON.parse(response.text) as string[];
+      return JSON.parse(response.text) as string[];
     }
     return ["Community update pending...", "Check back for local news.", "School board meets tonight.", "Main St. Farmers Market open.", "Volunteer fire dept fundraiser."];
   } catch (error) {
@@ -98,7 +101,7 @@ export const generateMapSketch = async (county: string, state: string): Promise<
   try {
     // Using image generation model to create the pencil sketch map
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image", 
+      model: "gemini-2.5-flash-image",
       contents: `A simple, technical 2D map of the US state of ${state} with all county lines clearly drawn in thin black ink.
       The specific county of ${county} is filled with a solid teal color (#006464).
       The rest of the map is transparent or matches the cream paper background.

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, User, Users, DollarSign, Briefcase } from 'lucide-react';
+import { MapPin, User, Users, DollarSign, Briefcase, Building } from 'lucide-react';
 import { CountyData, GeoLocation } from '../types';
 import { getCountyDemographics, generateMapSketch } from '../services/geminiService';
 
@@ -16,7 +16,7 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
     const fetchData = async () => {
       setLoading(true);
       setMapImage(null);
-      
+
       // Run in parallel
       const [demoData, mapUrl] = await Promise.all([
         getCountyDemographics(location.county, location.state),
@@ -52,9 +52,9 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
       {/* Map Visual */}
       <div className="w-full aspect-square mb-8 border-2 border-black p-2 bg-white rotate-1 shadow-lg">
         {mapImage ? (
-          <img 
-            src={mapImage} 
-            alt={`Map of ${location.state} highlighting ${location.county}`} 
+          <img
+            src={mapImage}
+            alt={`Map of ${location.state} highlighting ${location.county}`}
             className="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-500"
           />
         ) : (
@@ -78,10 +78,29 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
             <div className="h-px bg-black/20 my-4"></div>
             <InfoItem label="Population" value={data.population} icon={<Users size={20} />} />
             <InfoItem label="Median Household Income" value={data.medianIncome} icon={<DollarSign size={20} />} />
+
+            {data.topCities && data.topCities.length > 0 && (
+              <>
+                <div className="h-px bg-black/20 my-4"></div>
+                <div className="flex items-start group">
+                  <div className="mr-3 mt-1 text-[#006464] opacity-70 group-hover:opacity-100 transition-opacity">
+                    <Building size={20} />
+                  </div>
+                  <div>
+                    <span className="block text-sm text-gray-500 uppercase tracking-wider font-bold">Top Cities</span>
+                    <ul className="list-none">
+                      {data.topCities.map((city, index) => (
+                        <li key={index} className="text-lg font-medium">{city}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
-      
+
       <div className="mt-auto pt-8 text-center text-sm text-gray-400">
         <p>Data estimated for illustrative purposes.</p>
       </div>

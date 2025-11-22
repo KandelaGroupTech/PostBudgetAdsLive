@@ -7,6 +7,7 @@ export interface CountyData {
   population: string;
   medianIncome: string;
   description: string;
+  topCities: string[];
 }
 
 export interface TextAd {
