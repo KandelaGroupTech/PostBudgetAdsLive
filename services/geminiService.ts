@@ -1,4 +1,4 @@
-import { GoogleGenAI, SchemaType } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { CountyData } from "../types";
 
 // Initialize Gemini Client
@@ -18,25 +18,25 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: {
-            countyName: { type: SchemaType.STRING },
-            stateName: { type: SchemaType.STRING },
-            governor: { type: SchemaType.STRING },
-            senators: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-            congressRepresentative: { type: SchemaType.STRING },
-            population: { type: SchemaType.STRING },
-            medianIncome: { type: SchemaType.STRING },
-            description: { type: SchemaType.STRING },
+            countyName: { type: Type.STRING },
+            stateName: { type: Type.STRING },
+            governor: { type: Type.STRING },
+            senators: { type: Type.ARRAY, items: { type: Type.STRING } },
+            congressRepresentative: { type: Type.STRING },
+            population: { type: Type.STRING },
+            medianIncome: { type: Type.STRING },
+            description: { type: Type.STRING },
             topCities: {
-              type: SchemaType.ARRAY,
+              type: Type.ARRAY,
               items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                  name: { type: SchemaType.STRING },
-                  population: { type: SchemaType.STRING },
-                  lat: { type: SchemaType.NUMBER },
-                  lng: { type: SchemaType.NUMBER }
+                  name: { type: Type.STRING },
+                  population: { type: Type.STRING },
+                  lat: { type: Type.NUMBER },
+                  lng: { type: Type.NUMBER }
                 },
                 required: ["name", "population", "lat", "lng"]
               }
@@ -93,8 +93,8 @@ export const getCommunityAnnouncements = async (county: string, state: string): 
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: SchemaType.ARRAY,
-          items: { type: SchemaType.STRING }
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
         }
       }
     });

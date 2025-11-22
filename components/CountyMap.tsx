@@ -40,18 +40,18 @@ export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, top
 
     // Filter geometry for the specific state
     const stateGeometry = (topojson.feature(geoData, geoData.objects.states) as any).features.find(
-        (f: any) => f.id === fips
+        (f: any) => String(f.id) === fips
     );
 
     const countiesGeometry = (topojson.feature(geoData, geoData.objects.counties) as any).features.filter(
-        (f: any) => f.id.startsWith(fips)
+        (f: any) => String(f.id).startsWith(fips)
     );
 
     if (!stateGeometry) return <div>Geometry not found</div>;
 
     // Create projection
     const projection = d3.geoAlbersUsa()
-        .fitSize([400, 400], stateGeometry); // Assuming 400x400 container for calculation
+        .fitSize([400, 400], stateGeometry);
 
     const pathGenerator = d3.geoPath().projection(projection);
 
@@ -66,44 +66,6 @@ export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, top
             />
 
             {/* Counties */}
-            {countiesGeometry.map((county: any) => {
-                const isSelected = county.properties.name === countyName;
-                return (
-                    <path
-                        key={county.id}
-                        d={pathGenerator(county) || undefined}
-                        fill={isSelected ? "#E5E7EB" : "transparent"}
-                        stroke="#000"
-                        strokeWidth="0.5"
-                        className={`transition-colors duration-300 cursor-pointer hover:fill-[#006464] hover:opacity-50 ${isSelected ? 'fill-gray-200' : ''}`}
-                        style={{ fill: isSelected ? '#E5E7EB' : undefined }}
-                    >
-                        <title>{county.properties.name}</title>
-                    </path>
-                );
-            })}
-
-            {/* Selected County Highlight (Overlay for better visibility if needed, but class handling above should work) */}
-            {countiesGeometry.map((county: any) => {
-                if (county.properties.name === countyName) {
-                    return (
-                        <path
-                            key={`selected-${county.id}`}
-                            d={pathGenerator(county) || undefined}
-                            fill="#E5E7EB"
-                            stroke="#000"
-                            strokeWidth="1"
-                            className="pointer-events-none" // Let hover pass through to the interactive layer if we had one, but here we are just rendering.
-                        // Actually, the hover effect requested is: "highlighted in grey when idle and highlighted in teal (#006464) when hovered over by the mouse"
-                        // The previous map loop handles this via CSS classes if I use Tailwind properly.
-                        // But standard CSS hover on SVG elements works too.
-                        />
-                    )
-                }
-                return null;
-            })}
-
-            {/* Re-render counties to ensure correct layering and hover effects */}
             <g>
                 {countiesGeometry.map((county: any) => {
                     const isSelected = county.properties.name === countyName;
@@ -111,9 +73,10 @@ export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, top
                         <path
                             key={county.id}
                             d={pathGenerator(county) || undefined}
-                            className={`transition-colors duration-200 ease-in-out ${isSelected ? 'fill-gray-300' : 'fill-transparent'} hover:fill-[#006464]`}
+                            fill={isSelected ? "#E5E7EB" : "transparent"}
                             stroke="#000"
                             strokeWidth="0.5"
+                            className={`transition-colors duration-300 cursor-pointer hover:fill-[#006464] hover:opacity-50 ${isSelected ? 'fill-gray-200' : ''}`}
                         >
                             <title>{county.properties.name}</title>
                         </path>
