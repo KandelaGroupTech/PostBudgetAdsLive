@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, SchemaType } from "@google/genai";
 import { CountyData } from "../types";
 
 // Initialize Gemini Client
@@ -14,21 +14,33 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       IMPORTANT: For Governor, Senators, and Representative, include their party affiliation in parenthesis, e.g., "John Doe (D)" or "Jane Smith (R)".
       Include: Governor, Senators (names only with party), Representative (generic or specific if known with party), 
       approximate population, median household income, a 1 sentence description of the county's vibe,
-      and the top 3 cities in the county with their population in parenthesis (e.g. "City Name (10,000)").`,
+      and the top 3 cities in the county. For each city, provide the name, population (as a string, e.g. "10,000"), and approximate latitude/longitude coordinates.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: SchemaType.OBJECT,
           properties: {
-            countyName: { type: Type.STRING },
-            stateName: { type: Type.STRING },
-            governor: { type: Type.STRING },
-            senators: { type: Type.ARRAY, items: { type: Type.STRING } },
-            congressRepresentative: { type: Type.STRING },
-            population: { type: Type.STRING },
-            medianIncome: { type: Type.STRING },
-            description: { type: Type.STRING },
-            topCities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            countyName: { type: SchemaType.STRING },
+            stateName: { type: SchemaType.STRING },
+            governor: { type: SchemaType.STRING },
+            senators: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+            congressRepresentative: { type: SchemaType.STRING },
+            population: { type: SchemaType.STRING },
+            medianIncome: { type: SchemaType.STRING },
+            description: { type: SchemaType.STRING },
+            topCities: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  name: { type: SchemaType.STRING },
+                  population: { type: SchemaType.STRING },
+                  lat: { type: SchemaType.NUMBER },
+                  lng: { type: SchemaType.NUMBER }
+                },
+                required: ["name", "population", "lat", "lng"]
+              }
+            },
           },
           required: ["countyName", "stateName", "governor", "senators", "population", "medianIncome", "description", "topCities"]
         }
@@ -51,7 +63,7 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       population: "Unknown",
       medianIncome: "Unknown",
       description: "Unable to load specific county data at this time.",
-      topCities: ["Unknown"]
+      topCities: []
     };
   }
 };
@@ -81,8 +93,8 @@ export const getCommunityAnnouncements = async (county: string, state: string): 
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.ARRAY,
-          items: { type: Type.STRING }
+          type: SchemaType.ARRAY,
+          items: { type: SchemaType.STRING }
         }
       }
     });
@@ -94,33 +106,6 @@ export const getCommunityAnnouncements = async (county: string, state: string): 
   } catch (error) {
     console.error("Error fetching announcements", error);
     return ["Local news unavailable at the moment.", "Please check back later."];
-  }
-};
-
-export const generateMapSketch = async (county: string, state: string): Promise<string | null> => {
-  try {
-    // Using image generation model to create the pencil sketch map
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: `A simple, technical 2D map of the US state of ${state} with all county lines clearly drawn in thin black ink.
-      The specific county of ${county} is filled with a solid teal color (#006464).
-      The rest of the map is transparent or matches the cream paper background.
-      Style: Technical diagram, flat, high contrast, no shading, no architectural style.`,
-      config: {
-        // No responseMimeType for image generation
-      }
-    });
-
-    // Extract image from response candidates
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Error generating map sketch:", error);
-    return null;
   }
 };
 

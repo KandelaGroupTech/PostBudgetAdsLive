@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, User, Users, DollarSign, Briefcase, Building } from 'lucide-react';
 import { CountyData, GeoLocation } from '../types';
-import { getCountyDemographics, generateMapSketch } from '../services/geminiService';
+import { getCountyDemographics } from '../services/geminiService';
+import { CountyMap } from './CountyMap';
 
 interface LeftColumnProps {
   location: GeoLocation;
@@ -9,22 +10,15 @@ interface LeftColumnProps {
 
 export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
   const [data, setData] = useState<CountyData | null>(null);
-  const [mapImage, setMapImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setMapImage(null);
 
-      // Run in parallel
-      const [demoData, mapUrl] = await Promise.all([
-        getCountyDemographics(location.county, location.state),
-        generateMapSketch(location.county, location.state)
-      ]);
+      const demoData = await getCountyDemographics(location.county, location.state);
 
       setData(demoData);
-      setMapImage(mapUrl);
       setLoading(false);
     };
 
@@ -51,17 +45,11 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
 
       {/* Map Visual */}
       <div className="w-full aspect-square mb-8 border-2 border-black p-2 bg-white rotate-1 shadow-lg">
-        {mapImage ? (
-          <img
-            src={mapImage}
-            alt={`Map of ${location.state} highlighting ${location.county}`}
-            className="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-            <MapPin size={48} />
-          </div>
-        )}
+        <CountyMap
+          stateName={location.state}
+          countyName={location.county}
+          topCities={data?.topCities}
+        />
       </div>
 
       {/* Demographics */}
@@ -90,7 +78,7 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
                     <span className="block text-sm text-gray-500 uppercase tracking-wider font-bold">Top Cities</span>
                     <ul className="list-none">
                       {data.topCities.map((city, index) => (
-                        <li key={index} className="text-lg font-medium">{city}</li>
+                        <li key={index} className="text-lg font-medium">{city.name} <span className="text-sm text-gray-500">({city.population})</span></li>
                       ))}
                     </ul>
                   </div>
