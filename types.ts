@@ -34,3 +34,18 @@ export interface GeoLocation {
   county: string;
   state: string;
 }
+
+export interface AdSubmission {
+  locations: GeoLocation[];
+  category: string;
+  content: string;
+  contact: string;
+  totalAmount: number;
+  tax: number;
+  subtotal: number;
+}
+
+export interface StripeCheckoutSession {
+  sessionId: string;
+  url: string;
+}

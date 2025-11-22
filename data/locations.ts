@@ -3300,6 +3300,8 @@ const COUNTIES_BY_STATE: Record<string, string[]> = {
   "Wyoming": WYOMING_COUNTIES,
 };
 
+export { COUNTIES_BY_STATE };
+
 export const getCountiesForState = (state: string): string[] => {
   return COUNTIES_BY_STATE[state] || [];
 };

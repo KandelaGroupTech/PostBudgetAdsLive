@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { TextAd, GeoLocation } from '../types';
+import { PostAdModal } from './PostAdModal';
 
 const MOCK_ADS: TextAd[] = [
   { id: '1', category: 'FOR SALE', content: 'Vintage typewriter, mint condition. Needs new ribbon. $50 OBO.', contact: '555-012-3456', timestamp: 'Oct 24' },
@@ -21,6 +22,7 @@ interface MiddleColumnProps {
 export const MiddleColumn: React.FC<MiddleColumnProps> = ({ location }) => {
   const [visibleAds, setVisibleAds] = useState<TextAd[]>(MOCK_ADS.slice(0, 5));
   const [startIndex, setStartIndex] = useState(0);
+  const [showPostAdModal, setShowPostAdModal] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Rotate ads effect
@@ -30,7 +32,7 @@ export const MiddleColumn: React.FC<MiddleColumnProps> = ({ location }) => {
         const nextIndex = (prev + 1) % MOCK_ADS.length;
         const newSlice = [];
         for (let i = 0; i < 5; i++) {
-            newSlice.push(MOCK_ADS[(nextIndex + i) % MOCK_ADS.length]);
+          newSlice.push(MOCK_ADS[(nextIndex + i) % MOCK_ADS.length]);
         }
         setVisibleAds(newSlice);
         return nextIndex;
@@ -45,45 +47,54 @@ export const MiddleColumn: React.FC<MiddleColumnProps> = ({ location }) => {
       <div className="p-6 border-b-2 border-black/10 flex justify-between items-center bg-[#fbf9f4]">
         <h3 className="text-3xl font-bold tracking-tight">Local Wire</h3>
         <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-            <span className="text-base text-gray-500 font-bold tracking-widest">LIVE FEED</span>
+          <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+          <span className="text-base text-gray-500 font-bold tracking-widest">LIVE FEED</span>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-8 space-y-8" ref={scrollContainerRef}>
         <div className="text-center mb-6 opacity-50">
-             <p className="text-base italic">Showing ads near {location.county}</p>
+          <p className="text-base italic">Showing ads near {location.county}</p>
         </div>
-        
+
         {visibleAds.map((ad, idx) => (
-          <div 
+          <div
             key={`${ad.id}-${startIndex}-${idx}`}
             className="transform transition-all duration-500 hover:scale-[1.01]"
           >
             <div className="handwritten-border p-6 bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group">
-                {/* Teal highlight for Category - Bigger and Bolder */}
-                <span className="absolute top-0 left-0 bg-[#006464] text-white text-base px-4 py-1.5 font-bold tracking-widest">
-                    {ad.category}
-                </span>
-                
-                <div className="mt-8">
-                    <p className="text-2xl leading-relaxed mb-4">{ad.content}</p>
-                </div>
+              {/* Teal highlight for Category - Bigger and Bolder */}
+              <span className="absolute top-0 left-0 bg-[#006464] text-white text-base px-4 py-1.5 font-bold tracking-widest">
+                {ad.category}
+              </span>
 
-                <div className="mt-4 pt-3 border-t-2 border-dashed border-gray-300 flex justify-between items-center text-gray-600 text-base font-bold">
-                    <span className="flex items-center gap-2">{ad.contact}</span>
-                    <span>{ad.timestamp}</span>
-                </div>
+              <div className="mt-8">
+                <p className="text-2xl leading-relaxed mb-4">{ad.content}</p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t-2 border-dashed border-gray-300 flex justify-between items-center text-gray-600 text-base font-bold">
+                <span className="flex items-center gap-2">{ad.contact}</span>
+                <span>{ad.timestamp}</span>
+              </div>
             </div>
           </div>
         ))}
 
         <div className="py-8 text-center">
-            <button className="border-2 border-black px-8 py-3 hover:bg-black hover:text-white transition-colors font-bold text-xl tracking-wide">
-                + Post an Ad ($5)
-            </button>
+          <button
+            onClick={() => setShowPostAdModal(true)}
+            className="border-2 border-black px-8 py-3 hover:bg-black hover:text-white transition-colors font-bold text-xl tracking-wide"
+          >
+            + Post an Ad ($5)
+          </button>
         </div>
       </div>
+
+      <PostAdModal
+        isOpen={showPostAdModal}
+        onClose={() => setShowPostAdModal(false)}
+        currentLocation={location}
+      />
     </div>
   );
 };
