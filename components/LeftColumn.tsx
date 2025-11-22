@@ -6,9 +6,10 @@ import { CountyMap } from './CountyMap';
 
 interface LeftColumnProps {
   location: GeoLocation;
+  onLocationChange: (location: GeoLocation) => void;
 }
 
-export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
+export const LeftColumn: React.FC<LeftColumnProps> = ({ location, onLocationChange }) => {
   const [data, setData] = useState<CountyData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,6 +50,7 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location }) => {
           stateName={location.state}
           countyName={location.county}
           topCities={data?.topCities}
+          onCountyClick={(countyName) => onLocationChange({ county: countyName, state: location.state })}
         />
       </div>
 

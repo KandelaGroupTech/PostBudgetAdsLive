@@ -7,9 +7,10 @@ interface CountyMapProps {
     stateName: string;
     countyName: string;
     topCities?: { name: string; lat: number; lng: number }[];
+    onCountyClick?: (countyName: string) => void;
 }
 
-export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, topCities }) => {
+export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, topCities, onCountyClick }) => {
     const [geoData, setGeoData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -77,6 +78,7 @@ export const CountyMap: React.FC<CountyMapProps> = ({ stateName, countyName, top
                             stroke="#000"
                             strokeWidth="0.5"
                             className={`transition-colors duration-300 cursor-pointer hover:fill-[#006464] hover:opacity-50 ${isSelected ? 'fill-gray-200' : ''}`}
+                            onClick={() => onCountyClick?.(county.properties.name)}
                         >
                             <title>{county.properties.name}</title>
                         </path>
