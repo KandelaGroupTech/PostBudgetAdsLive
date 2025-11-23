@@ -123,13 +123,7 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
             // Create Stripe checkout session
             const session = await createCheckoutSession(adData);
 
-            // Send confirmation email
-            try {
-                await sendAdConfirmationEmail(adData);
-            } catch (emailError) {
-                console.error('Failed to send confirmation email:', emailError);
-                // Don't block submission if email fails
-            }
+            // Email will be sent by Stripe webhook after successful payment
 
             // Redirect to Stripe Checkout
             if (session.url) {
