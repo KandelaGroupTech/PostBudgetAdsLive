@@ -4,7 +4,7 @@ import { LocationMultiSelect } from './LocationMultiSelect';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { calculatePricing } from '../utils/pricing';
 import { createCheckoutSession } from '../services/stripeService';
-import { sendAdConfirmationEmail } from '../services/emailService';
+
 import { X } from 'lucide-react';
 
 interface PostAdModalProps {
