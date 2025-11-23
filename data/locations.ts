@@ -7,6 +7,7 @@ export const US_STATES = [
   "Colorado",
   "Connecticut",
   "Delaware",
+  "District of Columbia",
   "Florida",
   "Georgia",
   "Hawaii",
@@ -383,6 +384,10 @@ const DELAWARE_COUNTIES = [
   "Kent",
   "New Castle",
   "Sussex",
+];
+
+const DC_COUNTIES = [
+  "District of Columbia",
 ];
 
 const FLORIDA_COUNTIES = [
@@ -3256,6 +3261,7 @@ const COUNTIES_BY_STATE: Record<string, string[]> = {
   "Colorado": COLORADO_COUNTIES,
   "Connecticut": CONNECTICUT_COUNTIES,
   "Delaware": DELAWARE_COUNTIES,
+  "District of Columbia": DC_COUNTIES,
   "Florida": FLORIDA_COUNTIES,
   "Georgia": GEORGIA_COUNTIES,
   "Hawaii": HAWAII_COUNTIES,
