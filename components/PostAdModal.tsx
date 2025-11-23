@@ -131,12 +131,12 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 // Don't block submission if email fails
             }
 
-            // In production, redirect to Stripe Checkout
-            // window.location.href = session.url;
-
-            // For now, show confirmation (mock flow)
-            console.log('Checkout session created:', session);
-            setShowConfirmation(true);
+            // Redirect to Stripe Checkout
+            if (session.url) {
+                window.location.href = session.url;
+            } else {
+                throw new Error('No checkout URL returned');
+            }
         } catch (error) {
             console.error('Error submitting ad:', error);
             setErrors({ submit: 'Failed to process payment. Please try again.' });
