@@ -1,20 +1,8 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { CountyData } from "../types";
-
-// Initialize Gemini Client
-// Note: In a production environment, ensure the API Key is securely managed.
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
-
-export const getCountyDemographics = async (county: string, state: string): Promise<CountyData> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Provide demographic and political information for ${county} County, ${state}, USA. 
-      Return the data in JSON format. 
-      IMPORTANT: For Governor, Senators, and Representative, include their party affiliation in parenthesis, e.g., "John Doe (D)" or "Jane Smith (R)".
-      Include: Governor, Senators (names only with party), Representative (generic or specific if known with party), 
+      Return the data in JSON format.
+  IMPORTANT: For Governor, Senators, and Representative, include their party affiliation in parenthesis, e.g., "John Doe (D)" or "Jane Smith (R)".
+    Include: Governor, Senators(names only with party), Representative(generic or specific if known with party),
       approximate population, median household income, a 1 sentence description of the county's vibe,
-      and the top 3 cities in the county. For each city, provide the name, population (as a string, e.g. "10,000"), and approximate latitude/longitude coordinates.`,
+      and the top 3 cities in the county.For each city, provide the name, population(as a string, e.g. "10,000"), and approximate latitude / longitude coordinates.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -72,8 +60,8 @@ export const getWeather = async (county: string, state: string): Promise<string>
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Give me a very short (3-5 words) description of the typical weather for ${county} County, ${state} for today's date. 
-      Example: "Sunny, 72°F, Light Breeze". Do not include any intro text.`,
+      contents: `Give me a very short(3 - 5 words) description of the typical weather for ${ county } County, ${ state } for today's date. 
+      Example: "Sunny, 72°F, Light Breeze".Do not include any intro text.`,
     });
     return response.text?.trim() || "Partly Cloudy";
   } catch (error) {
@@ -86,9 +74,9 @@ export const getCommunityAnnouncements = async (county: string, state: string): 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Generate 5 realistic, brief community announcements for ${county} County, ${state}.
-      Examples: High school sports results, charity drives, new park openings, town hall meetings, road closures.
-      Constraint: Each announcement must be very short (max 15 words).
+      contents: `Generate 5 realistic, brief community announcements for ${ county } County, ${ state }.
+Examples: High school sports results, charity drives, new park openings, town hall meetings, road closures.
+  Constraint: Each announcement must be very short(max 15 words).
       Return only a JSON array of strings.`,
       config: {
         responseMimeType: "application/json",
@@ -113,14 +101,14 @@ export const generateAdSketch = async (description: string): Promise<string | nu
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-image",
-      contents: `A charcoal or pencil sketch of: ${description}. 
-      The style should be vintage japanese stationery, hand drawn, black and white, on cream paper background. 
-      Simple, elegant, no text in the image.`,
+      contents: `A charcoal or pencil sketch of: ${ description }. 
+      The style should be vintage japanese stationery, hand drawn, black and white, on cream paper background.
+  Simple, elegant, no text in the image.`,
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        return `data:${ part.inlineData.mimeType }; base64, ${ part.inlineData.data } `;
       }
     }
     return null;
