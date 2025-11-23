@@ -20,16 +20,27 @@ export const getWeather = async (county: string, state: string): Promise<string>
         }
 
         // Use geocoding to get coordinates for the county
-        const locationQuery = `${county} County, ${state}, USA`;
-        const geoResponse = await fetch(
-            `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`
-        );
+        // Try multiple query formats for better success rate
+        const queries = [
+            `${county}, ${state}, USA`,  // Try without "County" first
+            `${county} County, ${state}, USA`,
+            `${county}, ${state}`
+        ];
 
-        if (!geoResponse.ok) {
-            throw new Error(`Geocoding failed: ${geoResponse.statusText}`);
+        let geoData = null;
+        for (const locationQuery of queries) {
+            const geoResponse = await fetch(
+                `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationQuery)}&limit=1&appid=${apiKey}`
+            );
+
+            if (geoResponse.ok) {
+                const data = await geoResponse.json();
+                if (data && data.length > 0) {
+                    geoData = data;
+                    break;
+                }
+            }
         }
-
-        const geoData = await geoResponse.json();
 
         if (!geoData || geoData.length === 0) {
             console.warn(`Could not find location for ${county}, ${state}`);
