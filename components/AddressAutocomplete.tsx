@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { loadGoogleMapsScript } from '../utils/googleMapsLoader';
 
 interface AddressAutocompleteProps {
     value: string;
@@ -22,8 +23,39 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [error, setError] = useState<string>('');
+    const [scriptLoaded, setScriptLoaded] = useState(false);
+
+    const autocompleteService = useRef<any>(null);
     const debounceTimer = useRef<NodeJS.Timeout>();
     const wrapperRef = useRef<HTMLDivElement>(null);
+
+    // Load Google Maps Script
+    useEffect(() => {
+        let mounted = true;
+
+        const initGoogleMaps = async () => {
+            try {
+                await loadGoogleMapsScript();
+                if (mounted) {
+                    setScriptLoaded(true);
+                    if (window.google && window.google.maps && window.google.maps.places) {
+                        autocompleteService.current = new window.google.maps.places.AutocompleteService();
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load Google Maps:', err);
+                if (mounted) {
+                    setError('Failed to load address services');
+                }
+            }
+        };
+
+        initGoogleMaps();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     // Close suggestions when clicking outside
     useEffect(() => {
@@ -37,47 +69,55 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const fetchSuggestions = async (input: string) => {
+    const fetchSuggestions = (input: string) => {
         if (!input || input.length < 3) {
             setSuggestions([]);
             return;
+        }
+
+        if (!autocompleteService.current) {
+            // Try to initialize again if script is loaded but service isn't
+            if (window.google && window.google.maps && window.google.maps.places) {
+                autocompleteService.current = new window.google.maps.places.AutocompleteService();
+            } else {
+                return; // Service not ready
+            }
         }
 
         setIsLoading(true);
         setError('');
 
         try {
-            // Using Google Places Autocomplete API
-            const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+            const request = {
+                input: input,
+                types: ['address'],
+                componentRestrictions: { country: 'us' } // Restrict to US for now
+            };
 
-            if (!apiKey) {
-                throw new Error('Google Places API key not configured');
-            }
+            autocompleteService.current.getPlacePredictions(
+                request,
+                (predictions: any[], status: string) => {
+                    setIsLoading(false);
 
-            const response = await fetch(
-                `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&types=address&key=${apiKey}`
+                    if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                        setSuggestions(predictions.map(p => ({
+                            description: p.description,
+                            place_id: p.place_id
+                        })));
+                        setShowSuggestions(true);
+                    } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                        setSuggestions([]);
+                        setShowSuggestions(false);
+                    } else {
+                        // Don't show error for empty input or other non-critical statuses
+                        setSuggestions([]);
+                    }
+                }
             );
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch address suggestions');
-            }
-
-            const data = await response.json();
-
-            if (data.status === 'OK') {
-                setSuggestions(data.predictions || []);
-                setShowSuggestions(true);
-            } else if (data.status === 'ZERO_RESULTS') {
-                setSuggestions([]);
-                setShowSuggestions(false);
-            } else {
-                throw new Error(data.error_message || 'Failed to fetch suggestions');
-            }
         } catch (err) {
             console.error('Address autocomplete error:', err);
-            setError('Unable to fetch address suggestions');
+            setError('Unable to fetch suggestions');
             setSuggestions([]);
-        } finally {
             setIsLoading(false);
         }
     };
@@ -112,6 +152,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
                 placeholder={placeholder}
                 className={className}
                 autoComplete="off"
+                disabled={!scriptLoaded}
             />
 
             {isLoading && (
