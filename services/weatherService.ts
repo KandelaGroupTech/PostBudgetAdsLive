@@ -27,6 +27,16 @@ export const getWeather = async (county: string, state: string): Promise<string>
             `${county}, ${state}`
         ];
 
+        // Add hardcoded fallbacks for counties that don't geocode well
+        const cityFallbacks: Record<string, string> = {
+            'Marin': 'San Rafael',
+            'San Francisco': 'San Francisco',
+        };
+
+        if (cityFallbacks[county]) {
+            queries.push(`${cityFallbacks[county]}, ${state}, USA`);
+        }
+
         let geoData = null;
         for (const locationQuery of queries) {
             const geoResponse = await fetch(
