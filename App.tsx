@@ -5,7 +5,7 @@ import { RightColumn } from './components/RightColumn';
 import { LocationSelector } from './components/LocationSelector';
 import { GeoLocation } from './types';
 import { Newspaper, CloudSun } from 'lucide-react';
-import { getWeather } from './services/geminiService';
+import { getWeather } from './services/weatherService';
 
 const App: React.FC = () => {
   // Default location

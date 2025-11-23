@@ -39,7 +39,10 @@ export interface AdSubmission {
   locations: GeoLocation[];
   category: string;
   content: string;
-  contact: string;
+  email: string; // Required
+  phone?: string; // Optional
+  address?: string; // Optional
+  contact: string; // Deprecated, kept for backward compatibility
   totalAmount: number;
   tax: number;
   subtotal: number;

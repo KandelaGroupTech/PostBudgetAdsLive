@@ -3,7 +3,7 @@ import { CountyData } from "../types";
 
 // Initialize Gemini Client
 // Note: In a production environment, ensure the API Key is securely managed.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 
 export const getCountyDemographics = async (county: string, state: string): Promise<CountyData> => {
   try {
