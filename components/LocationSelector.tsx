@@ -1,4 +1,3 @@
-```javascript
 import React, { useState, useEffect } from 'react';
 import { Map, X, ChevronDown, Navigation } from 'lucide-react';
 import { GeoLocation } from '../types';
@@ -21,19 +20,19 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
   // Initial setup if modal opens
   useEffect(() => {
     if (isOpen) {
-        setState(currentLocation.state);
-        // We don't immediately set county because we need to load the list first
-        // But usually we want the user to make a conscious choice, so starting fresh is also fine.
-        // Let's try to preserve it if the state matches.
-        if (currentLocation.state) {
-            const counties = getCountiesForState(currentLocation.state);
-            setAvailableCounties(counties);
-            if (counties.includes(currentLocation.county)) {
-                setCounty(currentLocation.county);
-            } else {
-                setCounty('');
-            }
+      setState(currentLocation.state);
+      // We don't immediately set county because we need to load the list first
+      // But usually we want the user to make a conscious choice, so starting fresh is also fine.
+      // Let's try to preserve it if the state matches.
+      if (currentLocation.state) {
+        const counties = getCountiesForState(currentLocation.state);
+        setAvailableCounties(counties);
+        if (counties.includes(currentLocation.county)) {
+          setCounty(currentLocation.county);
+        } else {
+          setCounty('');
         }
+      }
     }
   }, [isOpen, currentLocation]);
 
@@ -113,13 +112,13 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
 
       // 6. Validate State and County against our data
       if (!US_STATES.includes(foundState)) {
-        setLocationError(`State not supported: ${ foundState } `);
+        setLocationError(`State not supported: ${foundState}`);
         setIsLoadingLocation(false);
         return;
       }
 
       const validCounties = getCountiesForState(foundState);
-      
+
       // Try to match county (sometimes API returns "City and County of San Francisco" vs "San Francisco")
       let matchedCounty = '';
       if (validCounties.includes(foundCounty)) {
@@ -139,7 +138,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
         // Auto-submit or just fill the form? User said "set the county", implies filling the form.
         // I'll fill the form so they can confirm.
       } else {
-        setLocationError(`Could not match county: ${ foundCounty } `);
+        setLocationError(`Could not match county: ${foundCounty}`);
       }
 
     } catch (error: any) {
@@ -156,7 +155,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
 
   if (!isOpen) {
     return (
-      <button 
+      <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 left-6 z-50 bg-[#006464] text-white px-4 py-2 shadow-xl flex items-center gap-2 hover:bg-[#004d4d] transition-colors rounded-sm"
       >
@@ -169,50 +168,50 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-[#FDFBF7] p-8 border-4 border-black shadow-2xl w-full max-w-md relative">
-        <button 
+        <button
           onClick={() => setIsOpen(false)}
           className="absolute top-4 right-4 hover:text-red-600"
         >
           <X size={24} />
         </button>
-        
+
         <h2 className="text-3xl font-bold mb-6 text-center">Select Region</h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="relative">
             <label className="block text-lg font-bold mb-1">State</label>
             <div className="relative">
-                <select
+              <select
                 required
                 value={state}
                 onChange={(e) => handleStateChange(e.target.value)}
                 className="w-full p-2 bg-white border-2 border-black appearance-none focus:outline-none focus:border-[#006464] font-['Patrick_Hand'] text-xl"
-                >
+              >
                 <option value="" disabled>Select a State</option>
                 {US_STATES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-3 pointer-events-none text-gray-500" size={20} />
+              </select>
+              <ChevronDown className="absolute right-3 top-3 pointer-events-none text-gray-500" size={20} />
             </div>
           </div>
-          
+
           <div className="relative">
-            <label className={`block text - lg font - bold mb - 1 ${ !state ? 'text-gray-400' : '' } `}>County</label>
+            <label className={`block text-lg font-bold mb-1 ${!state ? 'text-gray-400' : ''}`}>County</label>
             <div className="relative">
-                <select
+              <select
                 required
                 value={county}
                 disabled={!state}
                 onChange={(e) => setCounty(e.target.value)}
-                className={`w - full p - 2 bg - white border - 2 border - black appearance - none focus: outline - none focus: border - [#006464] font - ['Patrick_Hand'] text - xl ${ !state ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' : '' } `}
-                >
+                className={`w-full p-2 bg-white border-2 border-black appearance-none focus:outline-none focus:border-[#006464] font-['Patrick_Hand'] text-xl ${!state ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' : ''}`}
+              >
                 <option value="" disabled>Select a County</option>
                 {availableCounties.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
-                </select>
-                <ChevronDown className={`absolute right - 3 top - 3 pointer - events - none ${ !state ? 'text-gray-300' : 'text-gray-500' } `} size={20} />
+              </select>
+              <ChevronDown className={`absolute right-3 top-3 pointer-events-none ${!state ? 'text-gray-300' : 'text-gray-500'}`} size={20} />
             </div>
           </div>
 
@@ -223,33 +222,33 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
           )}
 
           <div className="space-y-3 mt-8">
-            <button 
-                type="submit"
-                disabled={!state || !county}
-                className={`w - full text - white py - 3 font - bold text - xl transition - colors ${ !state || !county ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-[#006464]' } `}
+            <button
+              type="submit"
+              disabled={!state || !county}
+              className={`w-full text-white py-3 font-bold text-xl transition-colors ${!state || !county ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-[#006464]'}`}
             >
-                Go to County
+              Go to County
             </button>
 
             <div className="relative flex items-center justify-center">
-                <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative bg-[#FDFBF7] px-4 text-sm text-gray-500">OR</div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative bg-[#FDFBF7] px-4 text-sm text-gray-500">OR</div>
             </div>
 
             <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={isLoadingLocation}
-                className="w-full bg-white text-[#006464] border-2 border-[#006464] py-3 font-bold text-xl transition-colors hover:bg-[#006464] hover:text-white flex items-center justify-center gap-2"
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={isLoadingLocation}
+              className="w-full bg-white text-[#006464] border-2 border-[#006464] py-3 font-bold text-xl transition-colors hover:bg-[#006464] hover:text-white flex items-center justify-center gap-2"
             >
-                {isLoadingLocation ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
-                ) : (
-                    <Navigation size={20} />
-                )}
-                Use Current Location
+              {isLoadingLocation ? (
+                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full"></div>
+              ) : (
+                <Navigation size={20} />
+              )}
+              Use Current Location
             </button>
           </div>
         </form>
@@ -257,4 +256,3 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
     </div>
   );
 };
-```
