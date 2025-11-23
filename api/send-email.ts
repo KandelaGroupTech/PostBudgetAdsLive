@@ -44,10 +44,12 @@ export default async function handler(
     });
 
     try {
-        await sesClient.send(command);
-        return response.status(200).json({ success: true });
+        const result = await sesClient.send(command);
+        console.log("✅ Email sent successfully to:", to);
+        console.log("MessageId:", result.MessageId);
+        return response.status(200).json({ success: true, messageId: result.MessageId });
     } catch (error: any) {
-        console.error("SES Error:", error);
+        console.error("❌ SES Error Details:", JSON.stringify(error, null, 2));
         return response.status(500).json({ error: 'Failed to send email', details: error.message });
     }
 }
