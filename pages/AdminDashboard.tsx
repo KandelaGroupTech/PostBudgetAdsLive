@@ -40,7 +40,7 @@ export const AdminDashboard: React.FC = () => {
             setAds(data || []);
         } catch (error) {
             console.error('Error fetching ads:', error);
-            alert('Failed to fetch ads');
+            alert(`Failed to fetch ads: ${(error as any).message}`);
         } finally {
             setLoading(false);
         }
