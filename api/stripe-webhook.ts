@@ -66,7 +66,11 @@ export default async function handler(
             // Insert into Supabase
             try {
                 const metadata = session.metadata || {};
-                const { error: dbError } = await supabaseAdmin
+                console.log('🔍 Attempting to insert ad into Supabase...');
+                console.log('Supabase URL:', process.env.SUPABASE_URL?.substring(0, 30) + '...');
+                console.log('Has Service Key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+                const { data, error: dbError } = await supabaseAdmin
                     .from('ads')
                     .insert({
                         stripe_session_id: session.id,
@@ -80,17 +84,21 @@ export default async function handler(
                         subtotal: session.amount_subtotal,
                         tax: session.total_details?.amount_tax || 0,
                         total_amount: session.amount_total
-                    });
+                    })
+                    .select();
 
                 if (dbError) {
-                    console.error('❌ Failed to insert ad into DB:', dbError);
-                    // We don't throw here to ensure the email still tries to send, 
-                    // but in a real app we might want to alert admin.
+                    console.error('❌ Failed to insert ad into DB:', JSON.stringify(dbError, null, 2));
+                    console.error('Error code:', dbError.code);
+                    console.error('Error message:', dbError.message);
+                    console.error('Error details:', dbError.details);
                 } else {
-                    console.log('✅ Ad inserted into DB as pending');
+                    console.log('✅ Ad inserted into DB as pending:', data);
                 }
             } catch (err) {
                 console.error('Error inserting into DB:', err);
+                console.error('Error type:', typeof err);
+                console.error('Error details:', JSON.stringify(err, null, 2));
             }
 
             // Send confirmation email directly via SES
