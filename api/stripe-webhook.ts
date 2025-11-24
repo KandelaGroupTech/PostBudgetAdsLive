@@ -2,6 +2,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { supabaseAdmin } from './utils/supabaseAdmin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2024-11-20.acacia',
@@ -62,8 +63,37 @@ export default async function handler(
             const session = event.data.object as Stripe.Checkout.Session;
             
             console.log('✅ Payment successful for session:', session.id);
-            console.log('Customer email:', session.customer_email);
             
+            // Insert into Supabase
+            try {
+                const metadata = session.metadata || {};
+                const { error: dbError } = await supabaseAdmin
+                    .from('ads')
+                    .insert({
+                        stripe_session_id: session.id,
+                        payment_intent_id: session.payment_intent as string,
+                        status: 'pending',
+                        content: metadata.adContent,
+                        category: metadata.category,
+                        locations: JSON.parse(metadata.locations || '[]'),
+                        email: session.customer_email || metadata.email,
+                        phone: metadata.phone,
+                        subtotal: session.amount_subtotal,
+                        tax: session.total_details?.amount_tax || 0,
+                        total_amount: session.amount_total
+                    });
+
+                if (dbError) {
+                    console.error('❌ Failed to insert ad into DB:', dbError);
+                    // We don't throw here to ensure the email still tries to send, 
+                    // but in a real app we might want to alert admin.
+                } else {
+                    console.log('✅ Ad inserted into DB as pending');
+                }
+            } catch (err) {
+                console.error('Error inserting into DB:', err);
+            }
+
             // Send confirmation email directly via SES
             try {
                 const command = new SendEmailCommand({
@@ -93,7 +123,6 @@ export default async function handler(
                 console.error('Error details:', JSON.stringify(emailError, null, 2));
             }
 
-            // TODO: Store ad in database
             break;
         }
 
