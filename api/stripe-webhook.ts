@@ -119,65 +119,64 @@ function generateConfirmationEmailHTML(metadata: any, amountTotal: number | null
     < !DOCTYPE html >
         <html>
         <head>
-        <style>
         body {
     font - family: 'Patrick Hand', cursive, Arial, sans - serif;
-    background - color: #FDFBF7;
-    color: #1a1a1a;
+    background - color: rgb(253, 251, 247); /* Replaced hex to avoid parser error */
+    color: rgb(26, 26, 26);
     padding: 20px;
 }
-        .container {
+                .container {
     max - width: 600px;
     margin: 0 auto;
     background: white;
-    border: 4px solid #000;
+    border: 4px solid black;
     padding: 30px;
 }
-        .header {
+                .header {
     text - align: center;
-    border - bottom: 2px solid #000;
+    border - bottom: 2px solid black;
     padding - bottom: 20px;
     margin - bottom: 20px;
 }
-        .header h1 {
-    color: #006464;
+                .header h1 {
+    color: rgb(0, 100, 100);
     margin: 0;
 }
-        .content {
+                .content {
     line - height: 1.6;
 }
-        .receipt - box {
-    border: 2px dashed #000;
+                .receipt - box {
+    border: 2px dashed black;
     padding: 15px;
     margin: 20px 0;
-    background: #f0f0f0;
+    background: rgb(240, 240, 240);
 }
-        .ad - details {
-    background: #f9f9f9;
-    border - left: 4px solid #006464;
+                .ad - details {
+    background: rgb(249, 249, 249);
+    border - left: 4px solid rgb(0, 100, 100);
     padding: 15px;
     margin: 20px 0;
 }
-        .category {
-    background: #006464;
+                .category {
+    background: rgb(0, 100, 100);
     color: white;
     padding: 5px 10px;
     display: inline - block;
     font - weight: bold;
     margin - bottom: 10px;
 }
-        .important {
-    background: #fff3cd;
-    border: 2px solid #ffc107;
+                .important {
+    background: rgb(255, 243, 205);
+    border: 2px solid rgb(255, 193, 7);
     padding: 15px;
     margin: 20px 0;
 }
-        .footer {
+                .footer {
     text - align: center;
     margin - top: 30px;
     padding - top: 20px;
-    border - top: 2px solid #000;
-    color: #666;
+    border - top: 2px solid black;
+    color: rgb(102, 102, 102);
 }
 </style>
     </head>
