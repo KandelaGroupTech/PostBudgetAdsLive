@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-import { supabaseAdmin } from './utils/supabaseAdmin';
+import { supabaseAdmin } from './utils/supabaseAdmin.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-11-17.clover',
