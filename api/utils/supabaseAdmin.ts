@@ -1,14 +1,11 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn('Missing Supabase server-side environment variables.');
+    console.error('Missing Supabase environment variables for admin client');
 }
 
-export const supabaseAdmin = createClient(
-    supabaseUrl || '',
-    supabaseServiceKey || ''
-);
+// Server-side Supabase client with service role key (bypasses RLS)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
