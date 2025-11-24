@@ -42,114 +42,133 @@ export default async function handler(
     request: VercelRequest,
     response: VercelResponse
 ) {
-    if (request.method !== 'POST') {
-        return response.status(405).json({ error: 'Method not allowed' });
-    }
-
-    const buf = await buffer(request);
-    const sig = request.headers['stripe-signature'];
-
-    if (!sig) {
-        return response.status(400).json({ error: 'Missing stripe-signature header' });
-    }
-
-    let event: Stripe.Event;
-
     try {
-        event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
-    } catch (err: any) {
-        console.error('Webhook signature verification failed:', err.message);
-        return response.status(400).json({ error: `Webhook Error: ${err.message}` });
-    }
+        console.log('🎯 Webhook received:', request.method, request.url);
 
-    // Handle the event
-    switch (event.type) {
-        case 'checkout.session.completed': {
-            const session = event.data.object as Stripe.Checkout.Session;
+        if (request.method !== 'POST') {
+            return response.status(405).json({ error: 'Method not allowed' });
+        }
 
-            console.log('✅ Payment successful for session:', session.id);
+        console.log('📦 Reading request body...');
+        const buf = await buffer(request);
+        console.log('✅ Body read, length:', buf.length);
 
-            // Insert into Supabase
-            try {
-                const metadata = session.metadata || {};
-                console.log('🔍 Attempting to insert ad into Supabase...');
-                console.log('Supabase URL:', process.env.SUPABASE_URL?.substring(0, 30) + '...');
-                console.log('Has Service Key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+        const sig = request.headers['stripe-signature'];
+        console.log('🔑 Stripe signature present:', !!sig);
 
-                const { data, error: dbError } = await supabaseAdmin
-                    .from('ads')
-                    .insert({
-                        stripe_session_id: session.id,
-                        payment_intent_id: session.payment_intent as string,
-                        status: 'pending',
-                        content: metadata.adContent,
-                        category: metadata.category,
-                        locations: JSON.parse(metadata.locations || '[]'),
-                        email: session.customer_email || metadata.email,
-                        phone: metadata.phone,
-                        subtotal: session.amount_subtotal,
-                        tax: session.total_details?.amount_tax || 0,
-                        total_amount: session.amount_total
-                    })
-                    .select();
+        if (!sig) {
+            return response.status(400).json({ error: 'Missing stripe-signature header' });
+        }
 
-                if (dbError) {
-                    console.error('❌ Failed to insert ad into DB:', JSON.stringify(dbError, null, 2));
-                    console.error('Error code:', dbError.code);
-                    console.error('Error message:', dbError.message);
-                    console.error('Error details:', dbError.details);
-                } else {
-                    console.log('✅ Ad inserted into DB as pending:', data);
+        let event: Stripe.Event;
+
+        console.log('🔐 Verifying webhook signature...');
+        try {
+            event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+            console.log('✅ Signature verified, event type:', event.type);
+        } catch (err: any) {
+            console.error('❌ Webhook signature verification failed:', err.message);
+            return response.status(400).json({ error: `Webhook Error: ${err.message}` });
+        }
+
+        // Handle the event
+        switch (event.type) {
+            case 'checkout.session.completed': {
+                const session = event.data.object as Stripe.Checkout.Session;
+
+                console.log('✅ Payment successful for session:', session.id);
+
+                // Insert into Supabase
+                try {
+                    const metadata = session.metadata || {};
+                    console.log('🔍 Attempting to insert ad into Supabase...');
+                    console.log('Supabase URL:', process.env.SUPABASE_URL?.substring(0, 30) + '...');
+                    console.log('Has Service Key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+                    const { data, error: dbError } = await supabaseAdmin
+                        .from('ads')
+                        .insert({
+                            stripe_session_id: session.id,
+                            payment_intent_id: session.payment_intent as string,
+                            status: 'pending',
+                            content: metadata.adContent,
+                            category: metadata.category,
+                            locations: JSON.parse(metadata.locations || '[]'),
+                            email: session.customer_email || metadata.email,
+                            phone: metadata.phone,
+                            subtotal: session.amount_subtotal,
+                            tax: session.total_details?.amount_tax || 0,
+                            total_amount: session.amount_total
+                        })
+                        .select();
+
+                    if (dbError) {
+                        console.error('❌ Failed to insert ad into DB:', JSON.stringify(dbError, null, 2));
+                        console.error('Error code:', dbError.code);
+                        console.error('Error message:', dbError.message);
+                        console.error('Error details:', dbError.details);
+                    } else {
+                        console.log('✅ Ad inserted into DB as pending:', data);
+                    }
+                } catch (err) {
+                    console.error('Error inserting into DB:', err);
+                    console.error('Error type:', typeof err);
+                    console.error('Error details:', JSON.stringify(err, null, 2));
                 }
-            } catch (err) {
-                console.error('Error inserting into DB:', err);
-                console.error('Error type:', typeof err);
-                console.error('Error details:', JSON.stringify(err, null, 2));
-            }
 
-            // Send confirmation email directly via SES
-            try {
-                const command = new SendEmailCommand({
-                    Source: process.env.AWS_SES_SENDER_EMAIL || "noreply@thekandelagroup.com",
-                    Destination: {
-                        ToAddresses: [session.customer_email || ""],
-                    },
-                    Message: {
-                        Subject: {
-                            Data: 'Receipt: Ad Submission - PostBudgetAds.com',
+                // Send confirmation email directly via SES
+                try {
+                    const command = new SendEmailCommand({
+                        Source: process.env.AWS_SES_SENDER_EMAIL || "noreply@thekandelagroup.com",
+                        Destination: {
+                            ToAddresses: [session.customer_email || ""],
                         },
-                        Body: {
-                            Html: {
-                                Data: generateConfirmationEmailHTML(session.metadata, session.amount_total),
+                        Message: {
+                            Subject: {
+                                Data: 'Receipt: Ad Submission - PostBudgetAds.com',
                             },
-                            Text: {
-                                Data: generateConfirmationEmailText(session.metadata, session.amount_total),
+                            Body: {
+                                Html: {
+                                    Data: generateConfirmationEmailHTML(session.metadata, session.amount_total),
+                                },
+                                Text: {
+                                    Data: generateConfirmationEmailText(session.metadata, session.amount_total),
+                                },
                             },
                         },
-                    },
-                });
+                    });
 
-                const result = await sesClient.send(command);
-                console.log("✅ Confirmation email sent via SES. MessageId:", result.MessageId);
-            } catch (emailError: any) {
-                console.error('❌ Failed to send confirmation email:', emailError);
-                console.error('Error details:', JSON.stringify(emailError, null, 2));
+                    const result = await sesClient.send(command);
+                    console.log("✅ Confirmation email sent via SES. MessageId:", result.MessageId);
+                } catch (emailError: any) {
+                    console.error('❌ Failed to send confirmation email:', emailError);
+                    console.error('Error details:', JSON.stringify(emailError, null, 2));
+                }
+
+                break;
             }
 
-            break;
+            case 'checkout.session.expired': {
+                const session = event.data.object as Stripe.Checkout.Session;
+                console.log('⏱️ Checkout session expired:', session.id);
+                break;
+            }
+
+            default:
+                console.log(`Unhandled event type: ${event.type}`);
         }
 
-        case 'checkout.session.expired': {
-            const session = event.data.object as Stripe.Checkout.Session;
-            console.log('⏱️ Checkout session expired:', session.id);
-            break;
-        }
-
-        default:
-            console.log(`Unhandled event type: ${event.type}`);
+        return response.status(200).json({ received: true });
+    } catch (error: any) {
+        console.error('💥 FATAL ERROR in webhook handler:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        return response.status(500).json({
+            error: 'Internal server error',
+            message: error.message,
+            stack: error.stack
+        });
     }
-
-    return response.status(200).json({ received: true });
 }
 
 function generateConfirmationEmailHTML(metadata: any, amountTotal: number | null): string {
