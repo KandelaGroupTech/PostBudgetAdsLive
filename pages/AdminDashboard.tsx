@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Newspaper, Check, X, LogOut, Image as ImageIcon, Paperclip } from 'lucide-react';
+import { Newspaper, Check, X, LogOut, Image as ImageIcon, Paperclip, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 interface Ad {
     id: string;
@@ -20,6 +21,7 @@ interface Ad {
 
 export const AdminDashboard: React.FC = () => {
     const [ads, setAds] = useState<Ad[]>([]);
+    const [liveAdsCount, setLiveAdsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [comment, setComment] = useState('');
@@ -27,6 +29,7 @@ export const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         fetchPendingAds();
+        fetchLiveAdsCount();
     }, []);
 
     const fetchPendingAds = async () => {
@@ -45,6 +48,20 @@ export const AdminDashboard: React.FC = () => {
             alert(`Failed to fetch ads: ${(error as any).message}`);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchLiveAdsCount = async () => {
+        try {
+            const { count, error } = await supabase
+                .from('ads')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'approved');
+
+            if (error) throw error;
+            setLiveAdsCount(count || 0);
+        } catch (error) {
+            console.error('Error fetching live ads count:', error);
         }
     };
 
@@ -109,6 +126,39 @@ export const AdminDashboard: React.FC = () => {
             </nav>
 
             <main className="max-w-7xl mx-auto p-6">
+                {/* Statistics Dashboard */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-sm font-semibold uppercase">Pending Review</p>
+                                <p className="text-4xl font-bold text-yellow-600 mt-2">{ads.length}</p>
+                            </div>
+                            <Clock size={48} className="text-yellow-500 opacity-20" />
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-sm font-semibold uppercase">Live Ads</p>
+                                <p className="text-4xl font-bold text-green-600 mt-2">{liveAdsCount}</p>
+                            </div>
+                            <CheckCircle size={48} className="text-green-500 opacity-20" />
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-sm font-semibold uppercase">Total Ads</p>
+                                <p className="text-4xl font-bold text-blue-600 mt-2">{ads.length + liveAdsCount}</p>
+                            </div>
+                            <TrendingUp size={48} className="text-blue-500 opacity-20" />
+                        </div>
+                    </div>
+                </div>
+
                 <h2 className="text-2xl font-bold mb-6">Pending Reviews ({ads.length})</h2>
 
                 {ads.length === 0 ? (
@@ -121,12 +171,15 @@ export const AdminDashboard: React.FC = () => {
                             <div key={ad.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
                                 <div className="p-6">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2">
-                                                {ad.category}
-                                            </span>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="inline-block bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700">
+                                                    {ad.category}
+                                                </span>
+                                                <CountdownTimer createdAt={ad.created_at} />
+                                            </div>
                                             <span className="text-gray-500 text-sm">
-                                                {new Date(ad.created_at).toLocaleString()}
+                                                Submitted: {new Date(ad.created_at).toLocaleString()}
                                             </span>
                                         </div>
                                         <div className="text-right">
