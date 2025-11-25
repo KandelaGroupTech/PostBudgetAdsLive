@@ -3,18 +3,40 @@ import { LeftColumn } from '../components/LeftColumn';
 import { MiddleColumn } from '../components/MiddleColumn';
 import { RightColumn } from '../components/RightColumn';
 import { LocationSelector } from '../components/LocationSelector';
+import { PostAdModal } from '../components/PostAdModal';
 import { GeoLocation } from '../types';
-import { Newspaper, CloudSun } from 'lucide-react';
+import { Newspaper, CloudSun, PenSquare } from 'lucide-react';
 import { getWeather } from '../services/weatherService';
 
 export const Home: React.FC = () => {
-    // Default location
-    const [location, setLocation] = useState<GeoLocation>({
-        county: 'Marin',
-        state: 'California'
-    });
+    // Load location from localStorage or use default
+    const getInitialLocation = (): GeoLocation => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('selectedLocation');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch {
+                    // Fall through to default
+                }
+            }
+        }
+        return {
+            county: 'Sussex',
+            state: 'Massachusetts'
+        };
+    };
 
+    const [location, setLocation] = useState<GeoLocation>(getInitialLocation());
     const [weather, setWeather] = useState<string>("");
+    const [showPostAdModal, setShowPostAdModal] = useState(false);
+
+    // Save location to localStorage whenever it changes
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('selectedLocation', JSON.stringify(location));
+        }
+    }, [location]);
 
     useEffect(() => {
         const fetchWeather = async () => {
@@ -80,7 +102,21 @@ export const Home: React.FC = () => {
 
             </main>
 
+            {/* Floating Post Ad Button */}
+            <button
+                onClick={() => setShowPostAdModal(true)}
+                className="fixed bottom-24 right-6 bg-[#006464] hover:bg-[#004d4d] text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-40 flex items-center gap-2"
+                aria-label="Post an Ad"
+            >
+                <PenSquare size={24} />
+                <span className="hidden sm:inline font-bold">Post an Ad</span>
+            </button>
+
             <LocationSelector currentLocation={location} onLocationChange={setLocation} />
+            <PostAdModal
+                isOpen={showPostAdModal}
+                onClose={() => setShowPostAdModal(false)}
+            />
         </div>
     );
 };
