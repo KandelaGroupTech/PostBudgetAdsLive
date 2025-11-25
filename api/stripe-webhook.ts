@@ -78,45 +78,45 @@ export default async function handler(
 
                 console.log('✅ Payment successful for session:', session.id);
 
-                // Insert into Supabase
+
+                // Update the existing ad in Supabase (it was created during checkout)
                 try {
                     const metadata = session.metadata || {};
-                    console.log('🔍 Attempting to insert ad into Supabase...');
+                    const adId = metadata.adId;
+
+                    if (!adId) {
+                        console.error('❌ No adId found in metadata');
+                        throw new Error('Missing adId in session metadata');
+                    }
+
+                    console.log('🔍 Updating ad in Supabase with ID:', adId);
                     console.log('Supabase URL:', process.env.SUPABASE_URL?.substring(0, 30) + '...');
                     console.log('Has Service Key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
                     const { data, error: dbError } = await supabaseAdmin
                         .from('ads')
-                        .insert({
+                        .update({
                             stripe_session_id: session.id,
                             payment_intent_id: session.payment_intent as string,
-                            status: 'pending',
-                            content: metadata.adContent,
-                            category: metadata.category,
-                            locations: JSON.parse(metadata.locations || '[]'),
-                            email: session.customer_email || metadata.email,
-                            phone: metadata.phone,
-                            subtotal: session.amount_subtotal,
-                            tax: session.total_details?.amount_tax || 0,
-                            total_amount: session.amount_total,
-                            attachment_url: metadata.attachment_url || null,
-                            attachment_type: metadata.attachment_type || null
+                            status: 'pending', // Change from pending_payment to pending
                         })
+                        .eq('id', adId)
                         .select();
 
                     if (dbError) {
-                        console.error('❌ Failed to insert ad into DB:', JSON.stringify(dbError, null, 2));
+                        console.error('❌ Failed to update ad in DB:', JSON.stringify(dbError, null, 2));
                         console.error('Error code:', dbError.code);
                         console.error('Error message:', dbError.message);
                         console.error('Error details:', dbError.details);
                     } else {
-                        console.log('✅ Ad inserted into DB as pending:', data);
+                        console.log('✅ Ad updated in DB to pending status:', data);
                     }
                 } catch (err) {
-                    console.error('Error inserting into DB:', err);
+                    console.error('Error updating ad in DB:', err);
                     console.error('Error type:', typeof err);
                     console.error('Error details:', JSON.stringify(err, null, 2));
                 }
+
 
                 // Send confirmation email directly via SES
                 try {
