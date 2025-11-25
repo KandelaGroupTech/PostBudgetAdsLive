@@ -66,12 +66,21 @@ export default async function handler(
             if (updateError) throw updateError;
 
             // Send Email
-            await sendEmail(ad.email, 'Your Ad is Live! - PostBudgetAds.com', `
-                <h1>Your Ad has been Approved!</h1>
-                <p>Great news! Your ad has been approved and is now live on PostBudgetAds.com.</p>
-                ${comment ? `<p><strong>Admin Note:</strong> ${comment}</p>` : ''}
-                <p><a href="https://postbudgetads.com">View your ad here</a></p>
-            `);
+            try {
+                console.log('📧 Sending approval email to:', ad.email);
+                await sendEmail(ad.email, 'Your Ad is Live! - PostBudgetAds.com', `
+                    <h1>Your Ad has been Approved!</h1>
+                    <p>Great news! Your ad has been approved and is now live on PostBudgetAds.com.</p>
+                    ${comment ? `<p><strong>Admin Note:</strong> ${comment}</p>` : ''}
+                    <p><a href="https://postbudgetads.com">View your ad here</a></p>
+                `);
+                console.log('✅ Approval email sent successfully');
+            } catch (emailError: any) {
+                console.error('❌ Failed to send approval email:', emailError);
+                console.error('Email error details:', JSON.stringify(emailError, null, 2));
+                // Don't throw - we still want to return success for the approval
+            }
+
 
         } else if (action === 'reject') {
             // Refund Stripe
@@ -94,12 +103,20 @@ export default async function handler(
             if (updateError) throw updateError;
 
             // Send Email
-            await sendEmail(ad.email, 'Update regarding your Ad - PostBudgetAds.com', `
-                <h1>Ad Submission Update</h1>
-                <p>We reviewed your ad submission and unfortunately it could not be approved at this time.</p>
-                <p><strong>Reason:</strong> ${comment || 'Violation of community guidelines'}</p>
-                <p><strong>Refund Status:</strong> A full refund has been initiated to your original payment method. Please allow 5-10 business days for it to appear.</p>
-            `);
+            try {
+                console.log('📧 Sending rejection email to:', ad.email);
+                await sendEmail(ad.email, 'Update regarding your Ad - PostBudgetAds.com', `
+                    <h1>Ad Submission Update</h1>
+                    <p>We reviewed your ad submission and unfortunately it could not be approved at this time.</p>
+                    <p><strong>Reason:</strong> ${comment || 'Violation of community guidelines'}</p>
+                    <p><strong>Refund Status:</strong> A full refund has been initiated to your original payment method. Please allow 5-10 business days for it to appear.</p>
+                `);
+                console.log('✅ Rejection email sent successfully');
+            } catch (emailError: any) {
+                console.error('❌ Failed to send rejection email:', emailError);
+                console.error('Email error details:', JSON.stringify(emailError, null, 2));
+                // Don't throw - we still want to return success for the rejection
+            }
         }
 
         return response.status(200).json({ success: true });
