@@ -48,7 +48,13 @@ export default async function handler(
 
         if (dbError || !tempAd) {
             console.error('Database error:', dbError);
-            throw new Error('Failed to store ad data');
+            console.error('Full error details:', JSON.stringify(dbError, null, 2));
+            return response.status(500).json({
+                error: 'Failed to store ad data',
+                details: dbError?.message || 'Unknown database error',
+                code: dbError?.code,
+                hint: dbError?.hint
+            });
         }
 
         // Calculate line items
