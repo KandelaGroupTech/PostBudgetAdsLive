@@ -4,6 +4,7 @@ import { MiddleColumn } from '../components/MiddleColumn';
 import { RightColumn } from '../components/RightColumn';
 import { LocationSelector } from '../components/LocationSelector';
 import { PostAdModal } from '../components/PostAdModal';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 import { GeoLocation } from '../types';
 import { Newspaper, CloudSun, PenSquare } from 'lucide-react';
 import { getWeather } from '../services/weatherService';
@@ -30,6 +31,17 @@ export const Home: React.FC = () => {
     const [location, setLocation] = useState<GeoLocation>(getInitialLocation());
     const [weather, setWeather] = useState<string>("");
     const [showPostAdModal, setShowPostAdModal] = useState(false);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+
+    // Check for success parameter in URL
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            setShowConfirmation(true);
+            // Clean up URL without reloading
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    }, []);
 
     // Save location to localStorage whenever it changes
     useEffect(() => {
@@ -117,6 +129,11 @@ export const Home: React.FC = () => {
                 isOpen={showPostAdModal}
                 onClose={() => setShowPostAdModal(false)}
                 currentLocation={location}
+            />
+
+            <ConfirmationModal
+                isOpen={showConfirmation}
+                onClose={() => setShowConfirmation(false)}
             />
         </div>
     );
