@@ -17,7 +17,34 @@ export const LeftColumn: React.FC<LeftColumnProps> = ({ location, onLocationChan
     const fetchData = async () => {
       setLoading(true);
 
+      // Check cache first
+      const cacheKey = `county_${location.state}_${location.county}`;
+      const cachedData = localStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          // Check if cache is less than 7 days old
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000) {
+            setData(parsed.data);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // Invalid cache, continue to fetch
+        }
+      }
+
+      // Fetch from API
       const demoData = await getCountyDemographics(location.county, location.state);
+
+      // Only cache if we got valid data (not the fallback "Unknown" data)
+      if (demoData.governor !== "Unknown") {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data: demoData,
+          timestamp: Date.now()
+        }));
+      }
 
       setData(demoData);
       setLoading(false);
