@@ -48,6 +48,8 @@ export default async function handler(
                 phone: adData.phone || '',
                 address: adData.address || '',
                 locations: JSON.stringify(adData.locations),
+                attachment_url: adData.attachment_url || '',
+                attachment_type: adData.attachment_type || '',
             },
         });
 

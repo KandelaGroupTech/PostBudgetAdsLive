@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { TextAd, GeoLocation } from '../types';
 import { PostAdModal } from './PostAdModal';
 import { supabase } from '../utils/supabaseClient';
+import { Image as ImageIcon, Paperclip } from 'lucide-react';
 
 interface MiddleColumnProps {
   location: GeoLocation;
@@ -74,6 +75,24 @@ export const MiddleColumn: React.FC<MiddleColumnProps> = ({ location }) => {
                 <span className="absolute top-0 left-0 bg-[#006464] text-white text-base px-4 py-1.5 font-bold tracking-widest">
                   {ad.category}
                 </span>
+
+                {/* Attachment Icon */}
+                {ad.attachment_url && (
+                  <a
+                    href={ad.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute top-0 right-0 bg-black text-white p-2 hover:bg-[#006464] transition-colors z-10"
+                    title={ad.attachment_type === 'image' ? 'View Image' : 'View Document'}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {ad.attachment_type === 'image' ? (
+                      <ImageIcon size={20} />
+                    ) : (
+                      <Paperclip size={20} />
+                    )}
+                  </a>
+                )}
 
                 <div className="mt-8">
                   <p className="text-2xl leading-relaxed mb-4">{ad.content}</p>

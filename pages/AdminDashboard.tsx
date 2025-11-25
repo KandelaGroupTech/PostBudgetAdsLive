@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Newspaper, Check, X, LogOut } from 'lucide-react';
+import { Newspaper, Check, X, LogOut, Image as ImageIcon, Paperclip } from 'lucide-react';
 
 interface Ad {
     id: string;
@@ -14,6 +14,8 @@ interface Ad {
     tax: number;
     total_amount: number;
     admin_comment?: string;
+    attachment_url?: string;
+    attachment_type?: 'image' | 'document';
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -140,6 +142,30 @@ export const AdminDashboard: React.FC = () => {
                                     <div className="text-sm text-gray-600 mb-4">
                                         <strong>Locations:</strong> {ad.locations.map((l: any) => `${l.county}, ${l.state}`).join('; ')}
                                     </div>
+
+                                    {ad.attachment_url && (
+                                        <div className="mb-4">
+                                            <strong className="text-sm text-gray-700 block mb-2">Attachment:</strong>
+                                            <a
+                                                href={ad.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded px-4 py-2 transition-colors"
+                                            >
+                                                {ad.attachment_type === 'image' ? (
+                                                    <>
+                                                        <ImageIcon size={18} />
+                                                        <span>View Image</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Paperclip size={18} />
+                                                        <span>View Document</span>
+                                                    </>
+                                                )}
+                                            </a>
+                                        </div>
+                                    )}
 
                                     {selectedAdId === ad.id ? (
                                         <div className="mb-4">

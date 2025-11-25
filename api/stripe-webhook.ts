@@ -98,7 +98,9 @@ export default async function handler(
                             phone: metadata.phone,
                             subtotal: session.amount_subtotal,
                             tax: session.total_details?.amount_tax || 0,
-                            total_amount: session.amount_total
+                            total_amount: session.amount_total,
+                            attachment_url: metadata.attachment_url || null,
+                            attachment_type: metadata.attachment_type || null
                         })
                         .select();
 

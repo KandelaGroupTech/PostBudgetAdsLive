@@ -46,6 +46,8 @@ export interface AdSubmission {
   totalAmount: number;
   tax: number;
   subtotal: number;
+  attachment_url?: string;
+  attachment_type?: 'image' | 'document';
 }
 
 export interface StripeCheckoutSession {
