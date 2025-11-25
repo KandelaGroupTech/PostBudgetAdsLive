@@ -72,7 +72,7 @@ export const AdminDashboard: React.FC = () => {
                 throw new Error(result.error || 'Failed to process');
             }
 
-            alert(`Ad ${action}d successfully`);
+            alert(`Ad ${action === 'reject' ? 'rejected' : 'approved'} successfully`);
             setAds(ads.filter(ad => ad.id !== adId));
             setComment('');
             setSelectedAdId(null);
