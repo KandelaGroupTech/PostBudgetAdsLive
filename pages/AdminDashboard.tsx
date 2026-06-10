@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../utils/supabaseClient';
+import { db } from '../utils/firebaseClient';
+import { collection, query, where, getDocs, orderBy, getCountFromServer } from 'firebase/firestore';
 import { Newspaper, Check, X, LogOut, Image as ImageIcon, Paperclip, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { CountdownTimer } from '../components/CountdownTimer';
 
@@ -35,14 +36,10 @@ export const AdminDashboard: React.FC = () => {
     const fetchPendingAds = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('ads')
-                .select('*')
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setAds(data || []);
+            const q = query(collection(db, 'ads'), where('status', '==', 'pending'), orderBy('created_at', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Ad[];
+            setAds(data);
         } catch (error) {
             console.error('Error fetching ads:', error);
             alert(`Failed to fetch ads: ${(error as any).message}`);
@@ -53,13 +50,9 @@ export const AdminDashboard: React.FC = () => {
 
     const fetchLiveAdsCount = async () => {
         try {
-            const { count, error } = await supabase
-                .from('ads')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'approved');
-
-            if (error) throw error;
-            setLiveAdsCount(count || 0);
+            const q = query(collection(db, 'ads'), where('status', '==', 'approved'));
+            const snapshot = await getCountFromServer(q);
+            setLiveAdsCount(snapshot.data().count);
         } catch (error) {
             console.error('Error fetching live ads count:', error);
         }
