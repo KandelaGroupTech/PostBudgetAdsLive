@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { TextAd, GeoLocation } from '../types';
 import { PostAdModal } from './PostAdModal';
-import { supabase } from '../utils/supabaseClient';
+import { db } from '../utils/firebaseClient';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { Image as ImageIcon, Paperclip } from 'lucide-react';
 
 interface MiddleColumnProps {
@@ -21,20 +22,16 @@ export const MiddleColumn: React.FC<MiddleColumnProps> = ({ location }) => {
   const fetchAds = async () => {
     setLoading(true);
     try {
-      // Fetch approved ads that contain the selected location
-      // We use the JSONB contains operator @>
-      const { data, error } = await supabase
-        .from('ads')
-        .select('*')
-        .eq('status', 'approved')
-        .contains('locations', JSON.stringify([{ county: location.county, state: location.state }]))
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching ads:', error);
-      } else {
-        setAds(data || []);
-      }
+      const q = query(collection(db, 'ads'), where('status', '==', 'approved'), orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const allAds = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Filter locally for the selected location
+      const filtered = allAds.filter((ad: any) =>
+        Array.isArray(ad.locations) && ad.locations.some(
+          (l: any) => l.county === location.county && l.state === location.state
+        )
+      );
+      setAds(filtered);
     } catch (err) {
       console.error('Unexpected error fetching ads:', err);
     } finally {

@@ -4,7 +4,8 @@ import { LocationMultiSelect } from './LocationMultiSelect';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { calculatePricing } from '../utils/pricing';
 import { createCheckoutSession } from '../services/stripeService';
-import { supabase } from '../utils/supabaseClient';
+import { storage } from '../utils/firebaseClient';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 import { X, Upload, FileText, Image as ImageIcon, Trash2 } from 'lucide-react';
 
@@ -136,24 +137,14 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
             let attachmentUrl = undefined;
             let attachmentType: 'image' | 'document' | undefined = undefined;
 
-            // Upload file if selected
+            // Upload file if selected - using Firebase Storage
             if (file) {
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-                const filePath = `${fileName}`;
+                const storageRef = ref(storage, `ad-attachments/${fileName}`);
 
-                const { error: uploadError } = await supabase.storage
-                    .from('ad-attachments')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                // Get public URL
-                const { data: { publicUrl } } = supabase.storage
-                    .from('ad-attachments')
-                    .getPublicUrl(filePath);
-
-                attachmentUrl = publicUrl;
+                await uploadBytes(storageRef, file);
+                attachmentUrl = await getDownloadURL(storageRef);
                 attachmentType = file.type.startsWith('image/') ? 'image' : 'document';
             }
 
@@ -168,92 +159,43 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 subtotal: pricing.subtotal,
                 tax: pricing.tax,
                 totalAmount: pricing.total,
-                attachment_url: attachmentUrl,
-                attachment_type: attachmentType
+                attachmentUrl,
+                attachmentType,
             };
 
-            // Create Stripe checkout session
-            const session = await createCheckoutSession(adData);
-
-            // Redirect to Stripe Checkout
-            if (session.url) {
-                window.location.href = session.url;
-            } else {
-                throw new Error('No checkout URL returned');
-            }
+            await createCheckoutSession(adData);
         } catch (error: any) {
-            console.error('Error submitting ad:', error);
-            setErrors({ submit: error.message || 'Failed to process payment. Please try again.' });
-        } finally {
+            console.error('Submission error:', error);
+            setErrors({ submit: error.message || 'Something went wrong. Please try again.' });
             setIsSubmitting(false);
         }
     };
 
     if (!isOpen) return null;
 
-    // Confirmation view
-    if (showConfirmation) {
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50">
-                <div className="bg-[#FDFBF7] border-2 sm:border-4 border-black max-w-2xl w-full p-4 sm:p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
-                    <button
-                        onClick={onClose}
-                        className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 hover:bg-black hover:text-white transition-colors border-2 border-black touch-manipulation"
-                        aria-label="Close"
-                    >
-                        <X size={20} className="sm:hidden" />
-                        <X size={24} className="hidden sm:block" />
-                    </button>
-
-                    <div className="text-center space-y-4 sm:space-y-6">
-                        <div className="text-4xl sm:text-6xl">✓</div>
-                        <h2 className="text-2xl sm:text-4xl font-bold">Thank You for Your Submission!</h2>
-
-                        <div className="border-l-4 border-[#006464] pl-4 sm:pl-6 text-left space-y-2 sm:space-y-3 text-sm sm:text-lg">
-                            <p className="font-bold">Your post is subject to moderation.</p>
-                            <p>Please allow <strong>2 hours</strong> for your post to go live.</p>
-                            <p>If your post is rejected, you will receive a <strong>100% refund</strong> to your payment method.</p>
-                        </div>
-
-                        <button
-                            onClick={onClose}
-                            className="bg-[#006464] text-white px-6 sm:px-8 py-3 text-lg sm:text-xl font-bold hover:bg-[#004444] transition-colors border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] touch-manipulation w-full sm:w-auto"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // Main form view
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-4 bg-black/50 overflow-y-auto">
-            <div className="bg-[#FDFBF7] border-2 sm:border-4 border-black max-w-4xl w-full my-2 sm:my-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative">
-                {/* Header */}
-                <div className="border-b-2 sm:border-b-4 border-black p-4 sm:p-6 bg-white relative">
-                    <h2 className="text-2xl sm:text-4xl font-bold text-center pr-10 sm:pr-0">Post an Ad</h2>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white w-full max-w-2xl max-h-[95vh] overflow-y-auto relative">
+                <div className="sticky top-0 bg-[#006464] text-white p-4 sm:p-6 flex justify-between items-center z-10">
+                    <div>
+                        <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Post an Ad</h2>
+                        <p className="text-sm sm:text-base opacity-80 mt-1">Reach your local community</p>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 sm:p-2 hover:bg-black hover:text-white transition-colors border-2 border-black touch-manipulation"
-                        aria-label="Close"
+                        className="p-2 hover:bg-white/20 rounded transition-colors"
+                        aria-label="Close modal"
                     >
-                        <X size={20} className="sm:hidden" />
-                        <X size={24} className="hidden sm:block" />
+                        <X size={24} />
                     </button>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-4 sm:space-y-8">
-                    {/* Location Selection */}
+                <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+                    {/* Locations */}
                     <div>
                         <label className="block text-lg sm:text-xl font-bold mb-2 sm:mb-3 uppercase tracking-wider">
-                            Select Locations
+                            Locations <span className="text-red-600">*</span>
                         </label>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 italic">
-                            Your ad will appear in all selected counties. Each county costs $5.00.
-                        </p>
                         <LocationMultiSelect
                             selectedLocations={selectedLocations}
                             onChange={setSelectedLocations}
@@ -264,34 +206,25 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                     </div>
 
                     {/* Pricing Display */}
-                    <div className="border-2 sm:border-4 border-[#006464] p-4 sm:p-6 bg-white">
-                        <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 uppercase tracking-wider">Pricing</h3>
-                        <div className="space-y-2 text-base sm:text-lg">
-                            <div className="flex justify-between">
-                                <span className="text-sm sm:text-base">Subtotal ({pricing.countyCount} {pricing.countyCount === 1 ? 'county' : 'counties'} × $5.00):</span>
-                                <span className="font-bold">{pricing.formatted.subtotal}</span>
-                            </div>
-                            <div className="flex justify-between text-gray-600">
-                                <span className="text-sm sm:text-base">Tax (6%):</span>
-                                <span className="font-bold">{pricing.formatted.tax}</span>
-                            </div>
-                            <div className="border-t-2 border-black pt-2 flex justify-between text-xl sm:text-2xl font-bold">
-                                <span>Total:</span>
-                                <span className="text-[#006464]">{pricing.formatted.total}</span>
-                            </div>
+                    <div className="bg-[#F0FDFD] border-2 border-[#006464] p-4">
+                        <div className="flex justify-between items-center">
+                            <span className="font-bold text-base sm:text-lg">Total Cost:</span>
+                            <span className="text-xl sm:text-2xl font-bold text-[#006464]">{pricing.formatted.total}</span>
                         </div>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                            {selectedLocations.length} location{selectedLocations.length !== 1 ? 's' : ''} ? $5.00 base + tax
+                        </p>
                     </div>
 
-                    {/* Category Selection */}
+                    {/* Category */}
                     <div>
-                        <label htmlFor="category" className="block text-lg sm:text-xl font-bold mb-2 sm:mb-3 uppercase tracking-wider">
-                            Category
+                        <label className="block text-lg sm:text-xl font-bold mb-2 sm:mb-3 uppercase tracking-wider">
+                            Category <span className="text-red-600">*</span>
                         </label>
                         <select
-                            id="category"
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                            className="w-full border-2 border-black px-3 sm:px-4 py-3 sm:py-3 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-[#006464] touch-manipulation"
+                            className="w-full border-2 border-black px-3 sm:px-4 py-3 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-[#006464] bg-white touch-manipulation"
                         >
                             <option value="">Select a category...</option>
                             {AD_CATEGORIES.map(cat => (
@@ -305,17 +238,12 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
 
                     {/* Ad Content */}
                     <div>
-                        <label htmlFor="content" className="block text-lg sm:text-xl font-bold mb-2 sm:mb-3 uppercase tracking-wider">
-                            Ad Content
+                        <label className="block text-lg sm:text-xl font-bold mb-2 sm:mb-3 uppercase tracking-wider">
+                            Ad Text <span className="text-red-600">*</span>
                         </label>
-                        <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 italic border-l-4 border-[#006464] pl-3 sm:pl-4">
-                            Ads are text-only and limited to 140 characters.
-                        </p>
                         <textarea
-                            id="content"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            maxLength={maxCharacters}
                             rows={4}
                             className="w-full border-2 border-black px-3 sm:px-4 py-3 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-[#006464] resize-none touch-manipulation"
                             placeholder="Enter your ad text here..."
