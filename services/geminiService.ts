@@ -1,8 +1,5 @@
 import { CountyData } from "../types";
 
-// Note: Gemini API calls are now handled by the secure backend endpoint (/api/get-county-data)
-// This prevents API key exposure in client-side code
-
 export const getCountyDemographics = async (county: string, state: string): Promise<CountyData> => {
   const maxRetries = 3;
   let lastError: any = null;
@@ -29,15 +26,13 @@ export const getCountyDemographics = async (county: string, state: string): Prom
       lastError = error;
       console.error(`Attempt ${attempt + 1} failed for ${county}, ${state}:`, error);
 
-      // If this isn't the last attempt, wait before retrying (exponential backoff)
       if (attempt < maxRetries - 1) {
-        const waitTime = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        const waitTime = Math.pow(2, attempt) * 1000;
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
   }
 
-  // All retries failed, return fallback data
   console.error(`All ${maxRetries} attempts failed for ${county}, ${state}. Last error:`, lastError);
   return {
     countyName: county,
@@ -52,16 +47,27 @@ export const getCountyDemographics = async (county: string, state: string): Prom
   };
 };
 
-export const getCommunityAnnouncements = async (county: string, state: string): Promise<string[]> => {
-  // Community announcements feature is not currently implemented
-  // Return placeholder data
-  return [
-    "Community update pending...",
-    "Check back for local news.",
-    "School board meets tonight.",
-    "Main St. Farmers Market open.",
-    "Volunteer fire dept fundraiser."
-  ];
+export const getCommunityAnnouncements = async (county: string, state: string): Promise<any[]> => {
+  try {
+    const response = await fetch('/api/county-news', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ county, state }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const { items } = await response.json();
+    return items || [];
+  } catch (error) {
+    console.error('Failed to fetch announcements:', error);
+    return [
+      { title: "Community update pending...", link: "#", pubDate: "" },
+      { title: "Check back for local news.", link: "#", pubDate: "" }
+    ];
+  }
 };
 
 export const generateAdSketch = async (description: string): Promise<string | null> => {

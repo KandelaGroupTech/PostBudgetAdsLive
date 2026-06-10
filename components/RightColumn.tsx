@@ -14,27 +14,25 @@ interface RightColumnProps {
 
 export const RightColumn: React.FC<RightColumnProps> = ({ location }) => {
   const [ads, setAds] = useState<SponsoredAd[]>([]);
-  const [announcements, setAnnouncements] = useState<string[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   
   useEffect(() => {
-    // Load announcements for the specific location
     const fetchAnnouncements = async () => {
+        // Clear previous announcements
+        setAnnouncements([]);
         const news = await getCommunityAnnouncements(location.county, location.state);
         setAnnouncements(news);
     };
 
-    // Load initial placeholders then fetch images one by one
     const initialAds = SPONSORED_CONTENT.map(c => ({ ...c, imageUrl: undefined }));
     setAds(initialAds);
 
     const fetchImages = async () => {
       const newAds = [...initialAds];
-      
       for (let i = 0; i < newAds.length; i++) {
         const url = await generateAdSketch(newAds[i].description);
         if (url) {
             newAds[i] = { ...newAds[i], imageUrl: url };
-            // Update state incrementally so user sees progress
             setAds([...newAds]); 
         }
       }
@@ -42,7 +40,7 @@ export const RightColumn: React.FC<RightColumnProps> = ({ location }) => {
 
     fetchAnnouncements();
     fetchImages();
-  }, [location]); // Re-run if location changes
+  }, [location]);
 
   return (
     <div className="h-full flex flex-col bg-[#FDFBF7] p-6 overflow-y-auto border-l border-black/5">
@@ -60,8 +58,20 @@ export const RightColumn: React.FC<RightColumnProps> = ({ location }) => {
             ) : (
                 announcements.slice(0, 5).map((item, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                        <span className="text-[#006464] font-bold mt-1.5 text-lg">●</span>
-                        <p className="text-xl font-medium leading-snug">{item}</p>
+                        <span className="text-[#006464] font-bold mt-1.5 text-lg">?</span>
+                        <div>
+                            <a 
+                                href={item.link} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-xl font-medium leading-snug hover:text-[#006464] hover:underline"
+                            >
+                                {item.title}
+                            </a>
+                            {item.pubDate && (
+                                <p className="text-xs text-gray-500 mt-1">{item.pubDate}</p>
+                            )}
+                        </div>
                     </li>
                 ))
             )}
@@ -92,7 +102,6 @@ export const RightColumn: React.FC<RightColumnProps> = ({ location }) => {
                         <span className="text-xs">Sketching...</span>
                     </div>
                 )}
-                {/* "Sponsor" tag looking like a stamp */}
                 <div className="absolute top-1 right-1 border border-black px-1 py-0 text-[10px] font-bold rotate-0 bg-[#FDFBF7]">
                     SPONSOR
                 </div>
