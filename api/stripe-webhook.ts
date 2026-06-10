@@ -1,13 +1,22 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase admin client
-const supabaseAdmin = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Initialize Firebase using web SDK for the webhook
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID || process.env.FIREBASE_APP_ID
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getFirestore(app);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-11-17.clover',
@@ -43,18 +52,18 @@ export default async function handler(
     response: VercelResponse
 ) {
     try {
-        console.log('🎯 Webhook received:', request.method, request.url);
+        console.log('?? Webhook received:', request.method, request.url);
 
         if (request.method !== 'POST') {
             return response.status(405).json({ error: 'Method not allowed' });
         }
 
-        console.log('📦 Reading request body...');
+        console.log('?? Reading request body...');
         const buf = await buffer(request);
-        console.log('✅ Body read, length:', buf.length);
+        console.log('? Body read, length:', buf.length);
 
         const sig = request.headers['stripe-signature'];
-        console.log('🔑 Stripe signature present:', !!sig);
+        console.log('?? Stripe signature present:', !!sig);
 
         if (!sig) {
             return response.status(400).json({ error: 'Missing stripe-signature header' });
@@ -62,12 +71,12 @@ export default async function handler(
 
         let event: Stripe.Event;
 
-        console.log('🔐 Verifying webhook signature...');
+        console.log('?? Verifying webhook signature...');
         try {
             event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
-            console.log('✅ Signature verified, event type:', event.type);
+            console.log('? Signature verified, event type:', event.type);
         } catch (err: any) {
-            console.error('❌ Webhook signature verification failed:', err.message);
+            console.error('? Webhook signature verification failed:', err.message);
             return response.status(400).json({ error: `Webhook Error: ${err.message}` });
         }
 
@@ -76,41 +85,28 @@ export default async function handler(
             case 'checkout.session.completed': {
                 const session = event.data.object as Stripe.Checkout.Session;
 
-                console.log('✅ Payment successful for session:', session.id);
+                console.log('? Payment successful for session:', session.id);
 
 
-                // Update the existing ad in Supabase (it was created during checkout)
+                // Update the existing ad in Firebase
                 try {
                     const metadata = session.metadata || {};
                     const adId = metadata.adId;
 
                     if (!adId) {
-                        console.error('❌ No adId found in metadata');
+                        console.error('? No adId found in metadata');
                         throw new Error('Missing adId in session metadata');
                     }
 
-                    console.log('🔍 Updating ad in Supabase with ID:', adId);
-                    console.log('Supabase URL:', process.env.SUPABASE_URL?.substring(0, 30) + '...');
-                    console.log('Has Service Key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+                    console.log('?? Updating ad in Firebase with ID:', adId);
 
-                    const { data, error: dbError } = await supabaseAdmin
-                        .from('ads')
-                        .update({
-                            stripe_session_id: session.id,
-                            payment_intent_id: session.payment_intent as string,
-                            status: 'pending', // Change from pending_payment to pending
-                        })
-                        .eq('id', adId)
-                        .select();
+                    await updateDoc(doc(db, 'ads', adId), {
+                        stripe_session_id: session.id,
+                        payment_intent_id: session.payment_intent as string,
+                        status: 'pending', // Change from pending_payment to pending
+                    });
 
-                    if (dbError) {
-                        console.error('❌ Failed to update ad in DB:', JSON.stringify(dbError, null, 2));
-                        console.error('Error code:', dbError.code);
-                        console.error('Error message:', dbError.message);
-                        console.error('Error details:', dbError.details);
-                    } else {
-                        console.log('✅ Ad updated in DB to pending status:', data);
-                    }
+                    console.log('? Ad updated in DB to pending status');
                 } catch (err) {
                     console.error('Error updating ad in DB:', err);
                     console.error('Error type:', typeof err);
@@ -141,9 +137,9 @@ export default async function handler(
                     });
 
                     const result = await sesClient.send(command);
-                    console.log("✅ Confirmation email sent via SES. MessageId:", result.MessageId);
+                    console.log("? Confirmation email sent via SES. MessageId:", result.MessageId);
                 } catch (emailError: any) {
-                    console.error('❌ Failed to send confirmation email:', emailError);
+                    console.error('? Failed to send confirmation email:', emailError);
                     console.error('Error details:', JSON.stringify(emailError, null, 2));
                 }
 
@@ -152,7 +148,7 @@ export default async function handler(
 
             case 'checkout.session.expired': {
                 const session = event.data.object as Stripe.Checkout.Session;
-                console.log('⏱️ Checkout session expired:', session.id);
+                console.log('?? Checkout session expired:', session.id);
                 break;
             }
 
@@ -162,7 +158,7 @@ export default async function handler(
 
         return response.status(200).json({ received: true });
     } catch (error: any) {
-        console.error('💥 FATAL ERROR in webhook handler:', error);
+        console.error('?? FATAL ERROR in webhook handler:', error);
         console.error('Error stack:', error.stack);
         console.error('Error details:', JSON.stringify(error, null, 2));
         return response.status(500).json({
@@ -257,7 +253,7 @@ function generateConfirmationEmailHTML(metadata: any, amountTotal: number | null
             <p>Thank you for your order. We have received your payment and ad submission.</p>
 
             <div class="receipt-box">
-                <h3 style="margin-top:0;">🧾 Payment Receipt</h3>
+                <h3 style="margin-top:0;">?? Payment Receipt</h3>
                 <p><strong>Total Paid:</strong> ${formattedAmount}</p>
                 <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
@@ -269,7 +265,7 @@ function generateConfirmationEmailHTML(metadata: any, amountTotal: number | null
             </div>
 
             <div class="important">
-                <p><strong>⏱️ Moderation Notice</strong></p>
+                <p><strong>?? Moderation Notice</strong></p>
                 <p>Your post is currently under review. Please allow <strong>up to 2 hours</strong> for your post to go live on the site.</p>
                 <p><strong>Refund Policy:</strong> If your post is rejected for any reason during moderation, you will automatically receive a <strong>100% refund</strong> to your original payment method.</p>
             </div>
@@ -297,7 +293,7 @@ PostBudgetAds.com - Order Confirmation & Receipt
 
 Thank you for your order. We have received your payment and ad submission.
 
-🧾 PAYMENT RECEIPT
+?? PAYMENT RECEIPT
 Total Paid: ${formattedAmount}
 Date: ${new Date().toLocaleDateString()}
 
