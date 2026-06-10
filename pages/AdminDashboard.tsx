@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { db } from '../utils/firebaseClient';
-import { collection, query, where, getDocs, orderBy, getCountFromServer } from 'firebase/firestore';
+import { supabase } from '../utils/supabaseClient';
 import { Newspaper, Check, X, LogOut, Image as ImageIcon, Paperclip, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { CountdownTimer } from '../components/CountdownTimer';
 
@@ -36,11 +35,14 @@ export const AdminDashboard: React.FC = () => {
     const fetchPendingAds = async () => {
         setLoading(true);
         try {
-            const q = query(collection(db, 'ads'), where('status', '==', 'pending'), orderBy('created_at', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Ad[];
+            const { data, error } = await supabase
+                .from('ads')
+                .select('*')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
 
-            setAds(data);
+            if (error) throw error;
+            setAds(data || []);
         } catch (error) {
             console.error('Error fetching ads:', error);
             alert(`Failed to fetch ads: ${(error as any).message}`);
@@ -51,10 +53,13 @@ export const AdminDashboard: React.FC = () => {
 
     const fetchLiveAdsCount = async () => {
         try {
-            const q = query(collection(db, 'ads'), where('status', '==', 'approved'));
-            const snapshot = await getCountFromServer(q);
+            const { count, error } = await supabase
+                .from('ads')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'approved');
 
-            setLiveAdsCount(snapshot.data().count);
+            if (error) throw error;
+            setLiveAdsCount(count || 0);
         } catch (error) {
             console.error('Error fetching live ads count:', error);
         }
@@ -264,4 +269,3 @@ export const AdminDashboard: React.FC = () => {
         </div>
     );
 };
-
