@@ -19,7 +19,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const db = getFirestore(app);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-11-17.clover',
+    apiVersion: '2026-02-25.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
