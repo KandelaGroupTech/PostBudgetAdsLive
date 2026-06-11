@@ -67,8 +67,9 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({ currentLocat
       // 1. Get Coordinates
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10000,
-          enableHighAccuracy: true
+          timeout: 15000,
+          maximumAge: 300000,
+          enableHighAccuracy: false
         });
       });
 
