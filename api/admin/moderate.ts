@@ -1,14 +1,8 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { adminDb } from '../utils/firebaseAdmin';
 import Stripe from 'stripe';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-
-// Initialize Supabase admin client
-const supabaseAdmin = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-11-17.clover',
@@ -38,15 +32,13 @@ export default async function handler(
 
     try {
         // 1. Fetch the ad
-        const { data: ad, error: fetchError } = await supabaseAdmin
-            .from('ads')
-            .select('*')
-            .eq('id', adId)
-            .single();
+        const docRef = adminDb.collection('ads').doc(adId);
+        const docSnap = await docRef.get();
 
-        if (fetchError || !ad) {
+        if (!docSnap.exists) {
             return response.status(404).json({ error: 'Ad not found' });
         }
+        const ad = docSnap.data() as any;
 
         if (ad.status !== 'pending') {
             return response.status(400).json({ error: 'Ad is not pending review' });
@@ -55,15 +47,10 @@ export default async function handler(
         // 2. Handle Action
         if (action === 'approve') {
             // Update DB
-            const { error: updateError } = await supabaseAdmin
-                .from('ads')
-                .update({
-                    status: 'approved',
-                    admin_comment: comment
-                })
-                .eq('id', adId);
-
-            if (updateError) throw updateError;
+            await docRef.update({
+                status: 'approved',
+                admin_comment: comment
+            });
 
             // Send Email
             try {
@@ -92,15 +79,10 @@ export default async function handler(
             }
 
             // Update DB
-            const { error: updateError } = await supabaseAdmin
-                .from('ads')
-                .update({
-                    status: 'rejected',
-                    admin_comment: comment
-                })
-                .eq('id', adId);
-
-            if (updateError) throw updateError;
+            await docRef.update({
+                status: 'rejected',
+                admin_comment: comment
+            });
 
             // Send Email
             try {

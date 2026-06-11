@@ -134,8 +134,8 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
         setIsSubmitting(true);
 
         try {
-            let attachmentUrl = undefined;
-            let attachmentType: 'image' | 'document' | undefined = undefined;
+            let attachment_url = undefined;
+            let attachment_type: 'image' | 'document' | undefined = undefined;
 
             // Upload file if selected - using Firebase Storage
             if (file) {
@@ -144,8 +144,8 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 const storageRef = ref(storage, `ad-attachments/${fileName}`);
 
                 await uploadBytes(storageRef, file);
-                attachmentUrl = await getDownloadURL(storageRef);
-                attachmentType = file.type.startsWith('image/') ? 'image' : 'document';
+                attachment_url = await getDownloadURL(storageRef);
+                attachment_type = file.type.startsWith('image/') ? 'image' : 'document';
             }
 
             const adData: AdSubmission = {
@@ -159,11 +159,22 @@ export const PostAdModal: React.FC<PostAdModalProps> = ({
                 subtotal: pricing.subtotal,
                 tax: pricing.tax,
                 totalAmount: pricing.total,
-                attachmentUrl,
-                attachmentType,
+                attachment_url,
+                attachment_type,
             };
 
-            await createCheckoutSession(adData);
+            // INSERT AD INTO FIREBASE FIRST
+            const { collection, addDoc } = await import('firebase/firestore');
+            const { db } = await import('../utils/firebaseClient');
+            
+            const docRef = await addDoc(collection(db, 'ads'), {
+                ...adData,
+                status: 'pending_payment',
+                created_at: new Date().toISOString()
+            });
+
+            // Pass the ID to the checkout session
+            await createCheckoutSession({ ...adData, id: docRef.id } as any);
         } catch (error: any) {
             console.error('Submission error:', error);
             setErrors({ submit: error.message || 'Something went wrong. Please try again.' });
