@@ -30,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         approximate population, median household income, a 1 sentence description of the county's vibe,
         and the top 3 cities in the county. For each city, provide the name, population (as a string, e.g. "10,000"), and approximate latitude/longitude coordinates.`,
                 config: {
+                    systemInstruction: "You are an expert in US local politics and geography. It is currently the year 2026. Provide the MOST RECENT and CURRENT political figures serving as of 2026. Note that Abigail Spanberger is the current Governor of Virginia in 2026.",
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: Type.OBJECT,
