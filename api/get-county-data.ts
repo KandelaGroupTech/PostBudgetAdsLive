@@ -21,17 +21,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
+            // === STEP 1: Use Google Search Grounding to get verified, current political figures ===
+            // NOTE: responseSchema cannot be used together with googleSearch grounding,
+            // so we do this as a separate freeform call first, then inject the results into step 2.
+            let politicsData = { governor: "", senators: [] as string[], representative: "" };
+            try {
+                const politicsResponse = await ai.models.generateContent({
+                    model: "gemini-2.5-flash",
+                    tools: [{ googleSearch: {} }],
+                    contents: `Search the web and return ONLY a raw JSON object (no markdown, no explanation) with the current political officials for ${state}, USA as of 2026.
+Use this exact format:
+{"governor": "Full Name (D or R)", "senators": ["Full Name (D or R)", "Full Name (D or R)"], "representative": "Full Name (D or R)"}
+
+- governor: the current elected Governor of ${state} as of January 2026 (the winner of the most recent gubernatorial election, not an acting or interim governor)
+- senators: the two current US Senators for ${state}
+- representative: the US House Representative for the district that covers ${county} County, ${state}`,
+                });
+
+                if (politicsResponse.text) {
+                    const raw = politicsResponse.text.replace(/```json|```/g, "").trim();
+                    politicsData = JSON.parse(raw);
+                }
+            } catch (politicsError) {
+                console.warn(`Step 1 politics lookup failed for ${state}, proceeding without verified data:`, politicsError);
+            }
+
+            // === STEP 2: Get full structured county data, with verified politics injected into the prompt ===
+            const politicsContext = politicsData.governor
+                ? `IMPORTANT - Use EXACTLY these verified political figures (do not substitute or change them):
+  - Governor of ${state}: ${politicsData.governor}
+  - US Senators for ${state}: ${politicsData.senators.join(" and ")}
+  - US House Representative for ${county} County: ${politicsData.representative}`
+                : `It is currently 2026. Use the most current political figures.`;
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                tools: [{ googleSearch: {} }],
-                contents: `Provide demographic and political information for ${county} County, ${state}, USA. 
-        Return the data in JSON format. 
+                contents: `Provide demographic and political information for ${county} County, ${state}, USA.
+        Return the data in JSON format.
         IMPORTANT: For Governor, Senators, and Representative, include their party affiliation in parenthesis, e.g., "John Doe (D)" or "Jane Smith (R)".
-        Include: Governor, Senators (names only with party), Representative (generic or specific if known with party), 
+        Include: Governor, Senators (names only with party), Representative (generic or specific if known with party),
         approximate population, median household income, a 1 sentence description of the county's vibe,
-        and the top 3 cities in the county. For each city, provide the name, population (as a string, e.g. "10,000"), and approximate latitude/longitude coordinates.`,
+        and the top 3 cities in the county. For each city, provide the name, population (as a string, e.g. "10,000"), and approximate latitude/longitude coordinates.
+        ${politicsContext}`,
                 config: {
-                    systemInstruction: "You are an expert in US local politics and geography. It is currently the year 2026. Provide the MOST RECENT and CURRENT political figures serving as of 2026. Ensure you report the winners of the 2025 elections who took office in January 2026, rather than former or temporary acting officeholders.",
+                    systemInstruction: "You are an expert in US local politics and geography. It is currently the year 2026. When political figures are explicitly provided to you, use them exactly as given.",
                     responseMimeType: "application/json",
                     responseSchema: {
                         type: Type.OBJECT,
